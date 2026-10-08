@@ -405,8 +405,42 @@ const FILMATO = telefono ? 'vicolo-telefono-b.mp4'
    Cosi' parte subito, non si aspetta nessun download, e va uguale ovunque. */
 const nata = performance.now();
 let pronto = false;
-v.addEventListener('loadeddata', () => { pronto = true; }, { once: true });
+['loadeddata', 'canplay', 'playing'].forEach(e =>
+  v.addEventListener(e, () => { pronto = true; }));
 v.src = FILMATO;
+
+/* LO SBLOCCO DELL'iPHONE.
+   Su iPhone il video non scarica NIENTE finche' non glielo chiede un gesto
+   vero dell'utente — e un dito che scorre non basta, ci vuole un tocco che
+   finisce. Quindi: al primo tocco gli si dice di suonare. Da quel momento il
+   motore puo' comandarlo da solo.
+   E soprattutto: i gesti NON si aspettano piu' che il filmato sia pronto. Se
+   si aspetta, non parte mai: lui aspetta il tocco, noi aspettiamo lui, e si
+   resta sul nero con "un attimo..." all'infinito. */
+let sbloccato = false;
+function sblocca() {
+  if (sbloccato) return;
+  sbloccato = true;
+  const p = v.play();
+  if (p && p.catch) p.catch(() => { sbloccato = false; });
+}
+['touchend', 'click', 'keydown', 'wheel', 'pointerup'].forEach(e =>
+  addEventListener(e, sblocca, { capture: true, passive: true }));
+
+/* E intanto si prova da soli, senza aspettare nessuno: muto e dentro la
+   pagina, i telefoni lo permettono. Non serve per far vedere qualcosa —
+   il filmato e' nero pesto fino al secondo 1,2, l'ho misurato — serve per
+   far entrare in memoria i primi fotogrammi. Mezzo secondo e si rimette al
+   buio, fermo. Se il telefono dice no, pazienza: ci pensa il primo tocco.
+   Questo e' anche il posto dove si resta sul nero del primo fotogramma:
+   niente parte da solo, l'accensione della luce sta dentro il primo gesto. */
+v.addEventListener('loadedmetadata', () => {
+  v.currentTime = 0;
+  const buio = () => { if (indice === 0 && bersaglio === 0) { v.pause(); v.currentTime = 0; } };
+  const p = v.play();
+  if (p && p.then) p.then(() => setTimeout(buio, 500), buio);
+  else setTimeout(buio, 500);
+}, { once: true });
 
 const pista     = document.getElementById('pista');
 const film      = document.getElementById('film');
@@ -590,6 +624,7 @@ let t0Indietro = 0;                 // quando è cominciato il ritorno
 let durataInd = 0.5;                // e quanto deve durare, secondo la distanza
 let cercando = false, cercaDaQuando = 0;   // un fotogramma per volta, all'indietro
 let t0Fermo = 0;                    // il cronometro per i passaggi a immagine ferma
+let visto = -1, vistoIl = 0;        // il cane da guardia: dov'era il film e quando
 let ultimoGesto = 0;                // per il riposo fra un gesto e l'altro
 let arrivatoIl = 0;                 // quando sono atterrato sulla tappa
 let completoIl = 0;                 // quando il pannello e' arrivato per intero
@@ -630,7 +665,6 @@ function punta(i) {
    Chi scrolla cinque volte durante l'animazione non va avanti di cinque tappe,
    e nemmeno di una: deve scrollare di nuovo quando il pannello e' li'. */
 function gestoValido(ora) {
-  if (!pronto) return false;        // il filmato non e' ancora qui: si aspetta
   if (inViaggio() || !coppiaCompleta) return false;
   return ora - Math.max(arrivatoIl, completoIl) >= SOSTA_MIN;
 }
@@ -749,6 +783,14 @@ function battito(ora) {
         u = morsa((ora - t0Fermo) / 520, 0, 1);
         if (u >= 1) { t0Fermo = 0; atterra(); }
       }
+      /* IL CANE DA GUARDIA. Se il film non si muove di un capello per sei
+         secondi — rete lenta, telefono che non vuole suonare, scheda in
+         secondo piano — il viaggio resterebbe appeso e da li' in poi ogni
+         gesto verrebbe buttato, perche' si e' "in viaggio" per sempre.
+         Allora si arriva a mano: brutto da vedere una volta, meglio di una
+         pagina morta. */
+      if (Math.abs(v.currentTime - visto) > 0.01) { visto = v.currentTime; vistoIl = ora; }
+      else if (vistoIl && ora - vistoIl > 6000) { visto = -1; vistoIl = 0; atterra(); return; }
       if (!v.paused) {
         const resta = Math.max(0.03, a.t - v.currentTime);
         const resp = respiroDi(a);
@@ -792,12 +834,14 @@ function battito(ora) {
   const g = morsa((v.currentTime - VELO_DA) / (VELO_A - VELO_DA), 0, 1);
   film.style.opacity = (1 - (1 - VELO) * g).toFixed(3);
   scuro.style.opacity = (!inViaggio() && da.pop) ? 0.30 : 0;
-  // l'invito a scorrere non compare finche' il filmato non e' arrivato:
-  // meglio non chiedere un gesto a cui non si puo' ancora rispondere
-  scorri.classList.toggle('acceso', pronto && indice === 0 && !inViaggio());
-  // finche' il filmato non c'e' si dice che sta arrivando: lo schermo nero
-  // da solo sembra una pagina rotta
-  attesa.classList.toggle('acceso', !pronto && performance.now() - nata > 1500);
+  /* L'invito si vede SEMPRE sulla prima tappa, anche se il filmato non e'
+     ancora arrivato: e' il gesto che lo fa partire, quindi nasconderlo
+     significa non far partire niente. */
+  scorri.classList.toggle('acceso', indice === 0 && !inViaggio());
+  /* "un attimo..." solo se il dito ha gia' chiesto e il filmato tarda: da
+     solo, sulla prima tappa nera, sembrava una pagina rotta per sempre. */
+  attesa.classList.toggle('acceso',
+    !pronto && sbloccato && performance.now() - nata > 2500);
   /* Sull'ultima tappa a due tempi non si dice piu' "continua a scorrere":
      si fa vedere il piede di pagina che comincia a salire. */
   const allaFine = !inViaggio() && !!da.poi && coppiaCompleta;
@@ -820,7 +864,7 @@ function battito(ora) {
 }
 
 function atterra() {
-  cercando = false;
+  cercando = false; visto = -1; vistoIl = 0;
   arrivatoIl = performance.now();
   indice = bersaglio;
   partenzaT = TAPPE[indice].t;
@@ -862,10 +906,9 @@ if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
   Object.values(pannelli).forEach(el => el.classList.add('entra'));
   quadrante.style.display = 'none';
 } else {
-  // Si resta sul nero del primo fotogramma: niente parte da solo.
-  // L'accensione della luce e tutta l'animazione sono dentro il primo gesto,
-  // e tornando indietro si ritorna qui, al buio.
-  v.addEventListener('loadedmetadata', () => { v.currentTime = 0; v.pause(); }, { once: true });
+  // Il nero di partenza lo tiene l'avvio silenzioso, qui sopra: un secondo
+  // 'loadedmetadata' che facesse pause() subito gli toglieva la memoria da
+  // sotto i piedi, e sull'iPhone restava senza fotogrammi.
   requestAnimationFrame(battito);
 }
 })();
