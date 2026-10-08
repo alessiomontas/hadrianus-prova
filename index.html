@@ -1,0 +1,872 @@
+<title>Il cammino &middot; prova completa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Archivo:wght@400;500;600&display=swap">
+<style>
+:root{
+  --notte:#000; --bordo:#2A2119;
+  --crema:#F2EDE3; --soft:#A79C8E; --fioco:#6B6155;
+  --oro:#C8A24B; --oro-chiaro:#E2C47E;
+  /* La regola 60-30-10: il nero regge la pagina, la crema porta il testo,
+     l'oro si accende solo dove deve decidere l'occhio. */
+  --sessanta:#000; --trenta:#C6BCAC; --dieci:#E2C47E;
+  --display:Cinzel,"Hoefler Text",Georgia,serif;
+  --testo:Archivo,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+/* Via la barra di scorrimento del browser: qui lo scorrimento lo comanda il
+   motore, quella striscia bianca sul bordo non serve e si vede, soprattutto
+   sul telefono. */
+html{scrollbar-width:none;-ms-overflow-style:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}
+body{margin:0;background:var(--notte);color:var(--crema);
+  font-family:var(--testo);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+p{margin:0}
+:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+
+/* ---------------- barra in alto ---------------- */
+.barra{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;
+  justify-content:space-between;padding:14px clamp(16px,4vw,38px);
+  background:linear-gradient(to bottom,rgba(0,0,0,.74),rgba(0,0,0,0))}
+.barra .marchio{font-family:var(--display);font-size:clamp(.8rem,.72rem + .3vw,1rem);
+  letter-spacing:.3em;color:var(--crema)}
+.barra a{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--oro-chiaro);
+  text-decoration:none;border:1px solid rgba(200,162,75,.45);padding:.55em 1.3em}
+.barra a:hover{background:var(--oro);color:#1A1309}
+
+/* ---------------- il film ---------------- */
+#film{position:fixed;inset:0;z-index:0;background:#000;overflow:hidden}
+#film video{position:absolute;inset:0;width:100%;height:100%;display:block;background:#000;
+  object-fit:cover;object-position:center 38%}
+/* NIENTE FILTRI QUI. Incisione, ombre e grado sono cotti dentro il filmato in
+   fase di compressione: il browser di chi guarda non deve fare nessun conto.
+   Prima la catena girava a ogni fotogramma e sui telefoni andava a scatti. */
+/* La sfumatura sulle scritte del podio: non copre, sfuoca quello che ha dietro.
+   Sta fra il filmato e la vignetta, cosi' l'ombra e la grana le passano sopra
+   e il bordo non si stacca. Misure e forma gliele da' lo script, a ogni giro. */
+#sfuma{position:fixed;left:0;top:0;width:0;height:0;z-index:1;
+  opacity:0;visibility:hidden;pointer-events:none;will-change:left,top,width,height,opacity;
+  /* la maschera che smussa i quattro bordi gliela mette lo script: e' calcolata
+     dai margini qui sopra, cosi' le due cose non possono andare fuori passo */
+  -webkit-mask-composite:source-in;mask-composite:intersect}
+#ombra{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 125% 95% at 50% 46%,rgba(0,0,0,0) 32%,rgba(0,0,0,.58) 100%)}
+/* il velo che si alza quando un pannello prende la scena */
+#scuro{position:fixed;inset:0;z-index:2;pointer-events:none;background:#000;opacity:0;
+  transition:opacity .55s ease}
+
+/* la grana: la sorgente e' morbida, un velo di pellicola la rimette a fuoco all'occhio */
+.grana{position:fixed;inset:-50%;z-index:3;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='170' height='170'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='170' height='170' filter='url(%23n)'/></svg>");
+  animation:balla 1.15s steps(3) infinite}
+@keyframes balla{0%{transform:translate(0,0)}33%{transform:translate(-2%,1.4%)}
+  66%{transform:translate(1.4%,-1%)}100%{transform:translate(0,0)}}
+
+/* ---------------- i pannelli, al centro ---------------- */
+.pop{position:fixed;inset:0;z-index:20;display:grid;place-items:center;
+  padding:clamp(20px,6vw,60px);pointer-events:none;visibility:hidden;
+  transition:transform .62s cubic-bezier(.2,.8,.3,1)}
+/* La larghezza si misura sulla SCATOLA (100%), non sulla finestra (vw):
+   con i vw il pannello poteva venire piu' largo dello spazio fra i due
+   margini, e allora il centraggio salta e sfora tutto da un lato. */
+.telaio{width:min(44rem,100%);text-align:center;transform-origin:50% -45%;
+  padding:clamp(22px,3.4vw,40px) clamp(22px,3.6vw,46px);
+  background:rgba(7,5,4,.80);border:1px solid rgba(200,162,75,.32);
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.pop.grande .telaio{width:min(52rem,100%)}
+/* Il quarto e il quinto stanno piu' in basso: li' sotto c'e' la fascia incisa
+   del podio, e il pannello la copre. Cosi' se la sfumatura lascia passare
+   qualcosa non si vede comunque. */
+.pop.basso{align-items:end;padding-bottom:clamp(54px,11vh,130px)}
+.telaio .capo{display:block;font-family:var(--display);font-weight:500;
+  font-size:clamp(1.9rem,1.35rem + 2.4vw,3.2rem);line-height:1.12;color:var(--dieci);
+  margin-bottom:.75rem;text-wrap:balance}
+/* Il primo pannello e' l'insegna: dice cosa facciamo, e lo dice grosso.
+   Sotto, il sottotitolo in crema, piu' piccolo ma non timido. */
+#pop1 .capo{font-size:clamp(2rem,1.3rem + 3vw,3.6rem)}
+#pop1 .corpo{font-size:clamp(1.15rem,1rem + .7vw,1.55rem);color:var(--crema);max-width:30ch}
+/* il secondo titolo dentro lo stesso pannello: stessa voce, un tono sotto */
+.telaio .capo.due{font-size:clamp(1.3rem,1rem + 1.3vw,1.9rem);margin:1.5rem 0 .6rem}
+/* La tariffa si legge come un'insegna: il numero grosso, la parola accanto. */
+.telaio .tariffa{display:flex;align-items:baseline;justify-content:center;
+  gap:clamp(.5rem,1.6vw,1.1rem);flex-wrap:wrap;margin-bottom:.5rem}
+.telaio .tariffa b{font-family:var(--display);font-weight:500;color:var(--dieci);
+  font-size:clamp(3.4rem,2.2rem + 6vw,7rem);line-height:.92;letter-spacing:-.01em}
+.telaio .tariffa i{font-family:var(--display);font-style:normal;font-weight:500;
+  color:var(--dieci);font-size:clamp(1.4rem,1.05rem + 1.5vw,2.2rem)}
+.telaio .corpo{display:block;font-size:clamp(1.06rem,.98rem + .45vw,1.3rem);line-height:1.58;
+  color:var(--trenta);max-width:44ch;margin-inline:auto;text-wrap:pretty}
+.telaio ul{margin:1.15rem auto 0;padding:0;list-style:none;text-align:left;
+  /* SEMPRE due colonne, anche sul telefono: le voci devono restare in pari,
+     mai una che va a capo da sola. Le righe spaiate si vedono subito. */
+  display:grid;grid-template-columns:repeat(2,auto);justify-content:center;
+  gap:.8rem 2.4rem;font-size:clamp(1.12rem,1rem + .45vw,1.36rem);line-height:1.3;
+  color:var(--crema)}
+.telaio ul.breve{gap:.6rem 2.2rem;font-size:clamp(1.02rem,.94rem + .35vw,1.2rem)}
+.telaio li{padding-left:1.1rem;position:relative}
+.telaio li::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;
+  background:var(--dieci);border-radius:50%}
+
+/* Le voci non arrivano tutte insieme: salgono una dopo l'altra, svelte.
+   E' la stessa classe che apre il pannello a farle partire, quindi non
+   tocca il motore dello scorrimento. */
+.pop.entra .telaio li{animation:voceSale .42s cubic-bezier(.16,.84,.34,1) both}
+.pop.entra .telaio li:nth-child(1){animation-delay:.26s}
+.pop.entra .telaio li:nth-child(2){animation-delay:.37s}
+.pop.entra .telaio li:nth-child(3){animation-delay:.48s}
+.pop.entra .telaio li:nth-child(4){animation-delay:.59s}
+.pop.entra .telaio li:nth-child(5){animation-delay:.70s}
+.pop.entra .telaio li:nth-child(6){animation-delay:.81s}
+.pop.entra .telaio li:nth-child(7){animation-delay:.90s}
+.pop.entra .telaio li:nth-child(8){animation-delay:.98s}
+.pop.entra .telaio li:nth-child(9){animation-delay:1.06s}
+.pop.entra .telaio li:nth-child(10){animation-delay:1.13s}
+.pop.entra .telaio li:nth-child(11){animation-delay:1.20s}
+.pop.entra .telaio li:nth-child(12){animation-delay:1.27s}
+@keyframes voceSale{
+  from{opacity:0;transform:translateY(11px)}
+  to  {opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .pop.entra .telaio li{animation:none}}
+
+.pop.entra{visibility:visible}
+.pop.entra .telaio{animation:dalLampione .85s cubic-bezier(.16,.84,.34,1) both}
+.pop.esce{visibility:visible}
+.pop.esce .telaio{animation:nellaNebbia .70s ease both}
+@keyframes dalLampione{
+  from{opacity:0;transform:scale(.80) translateY(-20px)}
+  to  {opacity:1;transform:none}}
+@keyframes nellaNebbia{
+  from{opacity:1;filter:blur(0);transform:none}
+  to  {opacity:0;filter:blur(18px);transform:scale(1.07)}}
+
+/* ---------------- gli inviti a scorrere ---------------- */
+.invito{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:25;
+  font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--fioco);
+  transition:opacity .5s;pointer-events:none;opacity:0;text-align:center}
+.invito::after{content:'';display:block;width:1px;height:20px;margin:9px auto 0;
+  background:linear-gradient(to bottom,var(--oro),transparent)}
+.invito.acceso{opacity:1}
+/* Il lampeggio va messo SOLO sulla scritta accesa: un'animazione che tocca
+   l'opacita' vince su quella della classe, quindi messa qui sopra faceva
+   comparire "continua a scorrere" fin dal primo istante, sopra "Scorri". */
+#continua{color:var(--oro-chiaro)}
+#continua.acceso{animation:respira 2.1s ease-in-out infinite}
+
+/* Alla fine non si dice piu' "continua a scorrere": si fa vedere il piede di
+   pagina che comincia a salire. Una striscia nera col filo d'oro e una
+   freccetta che punta in su. */
+#zoccolo{position:fixed;left:0;right:0;bottom:0;z-index:26;height:clamp(34px,5.5vh,52px);
+  background:linear-gradient(to top,#000 38%,rgba(0,0,0,0));border-top:1px solid rgba(200,162,75,.45);
+  display:flex;align-items:center;justify-content:center;pointer-events:none;
+  opacity:0;transform:translateY(100%);transition:opacity .5s ease,transform .5s ease}
+#zoccolo.acceso{opacity:1;transform:none}
+#zoccolo::before{content:'';width:0;height:0;border-left:7px solid transparent;
+  border-right:7px solid transparent;border-bottom:9px solid var(--dieci);
+  animation:respira 2.1s ease-in-out infinite}
+@keyframes respira{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* ---------------- l'avanzamento ----------------
+   Niente rotaia e niente palline: resta solo una barretta d'oro che scende
+   lungo il bordo. Le fermate restano nel codice (la tabella TAPPE), ma non
+   si vedono piu': erano un attrezzo da lavoro, non roba da far vedere. */
+.avanzamento{position:fixed;right:6px;top:0;bottom:0;z-index:36;width:3px;
+  pointer-events:none;background:none}
+.rotaia{position:relative;width:100%;height:100%;background:none}
+.rotaia i{position:absolute;left:0;top:0;width:100%;height:12%;border-radius:3px;
+  background:linear-gradient(to bottom,rgba(226,196,126,0),var(--dieci) 26%,
+             var(--dieci) 74%,rgba(226,196,126,0));
+  box-shadow:0 0 9px rgba(226,196,126,.3);
+  transition:top .18s cubic-bezier(.2,.8,.3,1);will-change:top}
+.tacca{display:none}
+@media (max-width:760px){
+  .avanzamento{right:4px;width:2px}
+  .rotaia i{height:10%}
+}
+
+/* ---------------- la pista ---------------- */
+.pista{position:relative;z-index:10;pointer-events:none}
+
+/* ---------------- la chiusura ---------------- */
+.chiusa{position:relative;z-index:30;background:var(--notte);
+  padding:clamp(70px,14vh,150px) clamp(16px,5vw,64px) clamp(40px,6vw,70px)}
+.dentro{width:min(100%,900px);margin-inline:auto}
+.chiusa h2{font-family:var(--display);font-weight:500;margin:0 0 .7rem;color:var(--dieci);
+  font-size:clamp(2rem,1.4rem + 3vw,3.5rem);line-height:1.08;text-wrap:balance}
+.chiusa .sotto{color:#C6BCAC;max-width:52ch;font-size:clamp(1.08rem,1rem + .35vw,1.25rem)}
+.chiamata{display:inline-block;margin-top:2rem;padding:1.05em 3.1em;background:var(--oro);color:#17110A;
+  text-decoration:none;font-size:clamp(1.02rem,.95rem + .35vw,1.2rem);letter-spacing:.16em;text-transform:uppercase;
+  font-weight:600;border-radius:2px;box-shadow:0 6px 22px rgba(200,162,75,.22)}
+.chiamata:hover{background:var(--oro-chiaro)}
+/* Il piede non e' piu' una griglia di riquadri: due righe sole, in fila.
+   Prima occupava mezza schermata e sembrava un ammasso. */
+.voci{margin-top:clamp(42px,6vw,70px);padding-top:20px;border-top:1px solid var(--bordo);
+  display:flex;flex-wrap:wrap;gap:.65rem 2rem;align-items:baseline}
+.voci span{font-size:.9rem;letter-spacing:.04em;color:var(--crema);cursor:default}
+.voci span::before{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;
+  background:var(--dieci);margin-right:.6rem;vertical-align:.18em}
+.piede{margin-top:16px;display:flex;flex-wrap:wrap;gap:.3rem 1.6rem;
+  font-size:.88rem;color:#8A7F71;font-variant-numeric:tabular-nums}
+.piede .posta{color:var(--crema)}
+
+/* ---------------- quadrante di regia ---------------- */
+.quadrante{position:fixed;left:12px;bottom:12px;z-index:50;
+  font-family:ui-monospace,Menlo,monospace;font-size:.62rem;letter-spacing:.05em;
+  color:rgba(167,156,142,.62);background:rgba(0,0,0,.62);padding:6px 10px;
+  border:1px solid rgba(242,237,227,.08);font-variant-numeric:tabular-nums;
+  pointer-events:auto;cursor:pointer;user-select:none;max-width:min(92vw,40rem)}
+.quadrante.via{opacity:.2}
+
+@media (max-width:760px){
+  /* Il filmato riempie tutto lo schermo del telefono. E' quadrato, quindi su uno
+     schermo alto si vede tutta l'altezza e si taglia ai lati: resta la striscia
+     centrale, circa il 46% della larghezza su un telefono di oggi. La scena e'
+     costruita al centro, quindi regge; e in piu' sul telefono si vede TUTTA
+     l'altezza, cosa che sul 16:9 non succede. */
+  #film video{object-fit:cover;object-position:center center}
+  #ombra{background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 18%,
+         rgba(0,0,0,0) 60%,rgba(0,0,0,.82) 94%)}
+  /* I margini laterali del pannello sono questi, e sono gli stessi a destra e
+     a sinistra perche' li da' la spaziatura della scatola. */
+  .pop{padding:20px 16px}
+  .pop.basso{padding:20px 16px clamp(44px,7vh,84px)}
+  .telaio{padding:22px 15px}
+  /* NIENTE colonna singola: le voci restano in pari anche qui. Era una regola
+     di prima a disfare la simmetria sul telefono.
+     Le misure sono tarate perche' la voce piu' lunga stia su UNA riga in uno
+     schermo da 390 px: se una va a capo e le altre no, si vede subito. */
+  .telaio ul{gap:.62rem .9rem;font-size:.93rem;line-height:1.35}
+  .telaio ul.breve{gap:.5rem .9rem;font-size:.92rem}
+  .telaio li{padding-left:.82rem}
+  .telaio li::before{width:5px;height:5px;top:.58em}
+  .telaio .capo{font-size:clamp(1.78rem,1.1rem + 4.2vw,2.4rem)}
+  .telaio .tariffa b{font-size:clamp(3.6rem,2rem + 13vw,5.4rem)}
+  .quadrante{font-size:.56rem;left:8px;bottom:8px;max-width:calc(100vw - 16px)}
+  .invito{bottom:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .grana{animation:none}
+  .pop.entra .telaio,.pop.esce .telaio{animation:none}
+  .pop.entra .telaio{opacity:1}
+  #continua{animation:none}
+}
+</style>
+
+<header class="barra">
+  <span class="marchio">HADRIANUS</span>
+  <a href="#parliamone">Parliamone</a>
+</header>
+
+<div id="film" aria-label="Il vicolo che porta al monumento Hadrianus">
+  <video id="v" muted playsinline preload="auto" poster="copertina.jpg"></video>
+</div>
+<div id="sfuma" aria-hidden="true"></div>
+<div id="ombra" aria-hidden="true"></div>
+<div id="scuro" aria-hidden="true"></div>
+<div class="grana" aria-hidden="true"></div>
+
+<div class="pop" id="pop1"><div class="telaio">
+  <span class="capo">Non una semplice gestione di case vacanze.</span>
+  <span class="corpo">La soluzione su misura per il tuo immobile.</span>
+</div></div>
+
+<div class="pop" id="pop2"><div class="telaio">
+  <span class="capo">Quello che cercavi.</span>
+  <ul class="breve">
+    <li>Niente morosit&agrave;</li>
+    <li>Sempre in regola</li>
+    <li>Pi&ugrave; di un affitto lungo</li>
+    <li>Qualcuno di fiducia</li>
+  </ul>
+</div></div>
+
+<div class="pop grande" id="pop3"><div class="telaio">
+  <span class="capo">Le nostre colonne portanti.</span>
+  <span class="corpo">Dalla A alla Z.</span>
+  <!-- In ordine di vita della casa: prima si affitta, poi arrivano gli ospiti,
+       poi si rimette a posto, poi le carte, poi i soldi. Le voci vicine sono
+       quelle che vanno insieme. -->
+  <ul>
+    <li>Annuncio e prezzi</li>
+    <li>Assistenza ospiti H24</li>
+    <li>Arrivi e partenze</li>
+    <li>Manutenzione pronta</li>
+    <li>Pulizia alberghiera</li>
+    <li>Biancheria inclusa</li>
+    <li>CIN e pratiche</li>
+    <li>Alloggiati e tassa</li>
+    <li>Conti e fisco</li>
+    <li>Pagato il 10 del mese</li>
+  </ul>
+</div></div>
+
+<div class="pop basso" id="pop4"><div class="telaio">
+  <span class="capo">Prima un sopralluogo.</span>
+  <span class="corpo">Veniamo a vedere la casa, la analizziamo e ti diamo una stima
+    di quanto pu&ograve; rendere. Senza impegno.</span>
+</div></div>
+
+<div class="pop basso" id="pop5"><div class="telaio">
+  <span class="tariffa"><b>15%</b><i>Nient'altro.</i></span>
+  <span class="corpo">Nessun canone fisso. Guadagniamo se guadagni tu.</span>
+</div></div>
+
+<div class="invito" id="scorri">Scorri</div>
+<div class="invito" id="continua">Continua a scorrere</div>
+<div id="zoccolo" aria-hidden="true"></div>
+<div class="invito" id="attesa">un attimo&hellip;</div>
+<div class="avanzamento" aria-hidden="true"><div class="rotaia" id="rotaia"><i id="riempi"></i></div></div>
+<div class="quadrante" id="quadrante">&mdash;</div>
+
+<main class="pista" id="pista" aria-hidden="true"></main>
+
+<section class="chiusa" id="parliamone">
+  <div class="dentro">
+    <h2>Scrivici. Al resto pensiamo noi.</h2>
+    <p class="sotto">Due righe bastano: dov'&egrave; la casa e quante stanze.
+      Risponde una persona, non un modulo.</p>
+    <a class="chiamata" href="mailto:info@hadrianusmultiservice.it">Scrivici ora</a>
+    <nav class="voci" aria-label="Sezioni del sito">
+      <span>Chi siamo</span><span>Le pulizie</span><span>Il compenso</span>
+      <span>Notizie del settore</span><span>Domande frequenti</span>
+    </nav>
+    <div class="piede">
+      <span>Roma e il litorale di Ostia</span>
+      <span class="posta">info@hadrianusmultiservice.it</span>
+      <span>prova di lavoro, non &egrave; online</span>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+'use strict';
+addEventListener('unhandledrejection', e => {
+  const m = String((e.reason && e.reason.message) || e.reason || '');
+  if (/play\(\)|AbortError|NotAllowedError/.test(m)) e.preventDefault();
+});
+
+/* ==================================================================
+   LE TAPPE
+   Ogni gesto porta alla tappa dopo. Nel mezzo il video SUONA
+   (non viene trascinato): per questo resta fluido e si ferma
+   esattamente sul fotogramma della tappa.
+   t   = il secondo del filmato
+   sch = dove sta la tappa nella pagina, in schermate
+   ================================================================== */
+const TAPPE = [
+  { nome: 'nero',     t:  0.00, sch: 0.0, pop: null   },
+  // il primo gesto riaccende la luce, fa tutto il marchio, lo zoom, il varco
+  // e arriva sotto il lampione. Respiro piu' largo: e' la scena d'ingresso.
+  { nome: 'pop1',     t:  4.60, sch: 1.5, pop: 'pop1', respiro: 2.3 },
+  { nome: 'pop2',     t:  6.30, sch: 3.0, pop: 'pop2' },
+  { nome: 'pop3',     t:  9.90, sch: 4.5, pop: 'pop3' },
+  // una sola tappa, due tempi: compare il 4, sale, e arriva il 5. Da solo.
+  { nome: 'finale',   t: 14.90, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70 },
+  // l'ultimo gesto: la luce cala in fretta e sale il piede di pagina
+  { nome: 'chiusura', t: 19.33, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
+];
+const ATTESA_COPPIA = 1200;   // quanto resta solo il primo prima che arrivi il secondo
+const STACCO = 16;            // lo spazio fra i due pannelli
+const ULTIMA    = TAPPE.length - 1;
+const SCHERMATE = TAPPE[ULTIMA].sch;
+
+const RESPIRO   = 1.9;    // secondi "giusti" per un passaggio: da qui esce la velocità
+const MIN_V     = 1.00;   // mai sotto la velocità naturale
+const MAX_V     = 2.60;   // oltre, la decodifica fatica sui portatili vecchi
+/* All'indietro il film si vede davvero scorrere a ritroso, da una tappa a
+   quella prima, e si ferma su ognuna. Va piu' svelto dell'andata di un terzo. */
+const INDIETRO_PIU = 1.38;
+const INDIETRO_MIN = 0.45, INDIETRO_MAX = 2.00;
+const RIPOSO    = 430;    // un gesto = una tappa: la rotella spara 30 eventi per colpo
+/* Il pannello entra mezzo secondo prima della fermata e ci mette 0,85 a
+   comparire: perche' resti UN SECONDO intero bello aperto, la sosta minima
+   dev'essere piu' lunga di cosi'. Vale in tutte e due le direzioni. */
+const SOSTA_MIN = 1400;
+/* Il tempo minimo si conta da quando il pannello e' COMPLETO, non da quando
+   il film si ferma: sulla scena a due tempi il secondo pannello arriva dopo,
+   e il conto parte da li'. Cosi' basta un numero solo. */
+const ANTICIPO  = 0.50;   // il pannello si apre mezzo secondo PRIMA che il film si fermi
+const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
+
+const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
+const dolce = u => u * u * (3 - 2 * u);
+
+const telefono = matchMedia('(max-width: 760px)').matches;
+const v = document.getElementById('v');
+const FILMATO = telefono ? 'vicolo-telefono-b.mp4'
+                         : 'vicolo-pc-b.mp4';
+
+/* Si guarda in streaming, come un filmato qualunque. Niente piu' scaricamento
+   in memoria: Safari su iPhone non sa leggere un filmato da un blocco, e
+   soprattutto non serve piu'. I filmati hanno un fotogramma chiave ogni mezzo
+   secondo invece che ogni due, quindi un salto costa al massimo 11 fotogrammi
+   da rileggere invece di 47: si puo' saltare dove si vuole senza fatica.
+   Cosi' parte subito, non si aspetta nessun download, e va uguale ovunque. */
+const nata = performance.now();
+let pronto = false;
+v.addEventListener('loadeddata', () => { pronto = true; }, { once: true });
+v.src = FILMATO;
+
+const pista     = document.getElementById('pista');
+const film      = document.getElementById('film');
+const scuro     = document.getElementById('scuro');
+const scorri    = document.getElementById('scorri');
+const continua  = document.getElementById('continua');
+const zoccolo   = document.getElementById('zoccolo');
+const attesa    = document.getElementById('attesa');
+const quadrante = document.getElementById('quadrante');
+const riempi    = document.getElementById('riempi');
+// la pista finisce dove comincia la chiusura: l'ultima tappa ci porta dentro
+pista.style.height = (SCHERMATE * 100) + 'svh';
+
+const pannelli = {};
+TAPPE.forEach(x => { [x.pop, x.poi].forEach(n => { if (n) pannelli[n] = document.getElementById(n); }); });
+
+/* Le fermate restano qui dentro, nella tabella TAPPE: servono al motore.
+   Non si disegnano piu' sulla barra. */
+
+/* ==================================================================
+   LE SCRITTE SUL PODIO
+   Sul podio del tempio il filmato ha una fascia incisa con due righe di
+   finto latino. Non ci si mette niente sopra: si sfuoca il marmo solo
+   li' dentro. La pietra resta la stessa, con la sua venatura e la sua
+   luce; le lettere no. Si capisce che c'e' scritto qualcosa, non si
+   legge piu' cosa.
+
+   Due tratti. All'ANDATA, mentre la camera entra sulla facciata fra la
+   tappa 2 e la 3. Al RITORNO, quando il tempio torna frontale fra la
+   tappa 3 e la 4 e ci resta fino a che la luce cala. In mezzo il podio
+   e' girato via dalla camera e non c'e' niente da coprire.
+
+   I quattro angoli sono MISURATI sul filmato, in frazioni del
+   fotogramma. Ordine: alto-sinistra, alto-destra, basso-destra,
+   basso-sinistra.
+   ================================================================== */
+const SCRITTE = [
+  { da: 6.85, piena: 7.25, cala: 8.15, a: 8.75, punti: [
+    [6.90, 0.4490,0.6185, 0.5530,0.6176, 0.5530,0.6284, 0.4490,0.6293],
+    [7.20, 0.4070,0.6620, 0.6070,0.6600, 0.6070,0.6808, 0.4070,0.6828],
+    [7.50, 0.3940,0.6986, 0.6590,0.6956, 0.6590,0.7250, 0.3940,0.7280],
+    [7.90, 0.3650,0.7452, 0.7070,0.7412, 0.7070,0.7740, 0.3650,0.7780],
+    [8.10, 0.3600,0.7424, 0.7190,0.7382, 0.7190,0.7760, 0.3600,0.7800],
+    [8.40, 0.4920,0.7758, 0.8550,0.7637, 0.8550,0.8080, 0.4920,0.8128],
+    [8.60, 0.6610,0.7513, 0.9030,0.7363, 0.9030,0.7610, 0.6610,0.7820]
+  ]},
+  { da: 10.90, piena: 11.25, cala: 17.00, a: 17.80, punti: [
+    [11.20, 0.5940,0.7313, 0.8220,0.7221, 0.8220,0.7686, 0.5940,0.7778],
+    [11.60, 0.4970,0.7290, 0.7780,0.7200, 0.7780,0.7686, 0.4970,0.7776],
+    [12.30, 0.3030,0.7276, 0.6820,0.7236, 0.6820,0.7740, 0.3030,0.7780],
+    [13.20, 0.2920,0.7320, 0.6850,0.7300, 0.6850,0.7770, 0.2920,0.7790],
+    [17.40, 0.2920,0.7320, 0.6850,0.7300, 0.6850,0.7770, 0.2920,0.7790]
+  ]}
+];
+/* Quanto pesa la sfumatura. DEVE restare 1: la trasparenza di CSS mescola
+   l'immagine sfocata con quella NITIDA di sotto, quindi a 0,5 meta' delle
+   lettere passa intatta e si leggono lo stesso. Provato: anche a 0,88 si
+   leggono. L'integrazione col marmo si ottiene dosando la sfocatura qui
+   sotto, non abbassando questo numero. */
+const VELATURA = 1.00;
+
+/* Quanto esce la sfumatura oltre la scritta, in frazioni dell'altezza e della
+   larghezza della scritta stessa. Questo margine non e' pieno: e' tutto bordo
+   che si spegne, da dentro verso fuori, fino a sparire del tutto. Sopra e'
+   corto apposta: li' sopra corre una modanatura piu' scura e la sfumatura deve
+   restare sotto di lei, solo sul marmo bianco. */
+const SOPRA = 0.26, SOTTO = 0.42, LATI = 0.22;
+/* quanto la parte a fuoco pieno scende sotto l'ultima riga, per prendere anche
+   le code delle lettere */
+const PIENO_GIU = 0.13;
+const sfuma = document.getElementById('sfuma');
+let maschera = '';
+
+function doveScritta(t) {
+  for (const f of SCRITTE) {
+    if (t <= f.da || t >= f.a) continue;
+    const op = t < f.piena ? (t - f.da) / (f.piena - f.da)
+             : t <= f.cala ? 1
+             : 1 - (t - f.cala) / (f.a - f.cala);
+    const P = f.punti;
+    if (t <= P[0][0]) return { q: P[0].slice(1), op };
+    const U = P[P.length - 1];
+    if (t >= U[0]) return { q: U.slice(1), op };
+    for (let i = 0; i < P.length - 1; i++) {
+      const A = P[i], B = P[i + 1];
+      if (t >= A[0] && t <= B[0]) {
+        const u = (t - A[0]) / (B[0] - A[0]);
+        return { q: A.slice(1).map((x, k) => x + (B[k + 1] - x) * u), op };
+      }
+    }
+  }
+  return null;
+}
+
+/* Il filmato e' quadrato ma la finestra no: il browser lo ritaglia.
+   Per mettere la sfumatura al punto giusto bisogna rifare lo stesso
+   conto che fa object-fit, se no scivola appena si cambia misura. */
+let taglio = null;
+function misuraTaglio() {
+  const st = getComputedStyle(v);
+  const pos = st.objectPosition.split(' ');
+  taglio = { contieni: st.objectFit === 'contain',
+             px: parseFloat(pos[0]) / 100,
+             py: parseFloat(pos.length > 1 ? pos[1] : pos[0]) / 100 };
+}
+addEventListener('resize', () => { taglio = null; });
+
+let sfumaViva = 0;
+function muoviSfuma(t) {
+  const d = doveScritta(t);
+  sfumaViva = d ? d.op : 0;
+  if (!d || d.op <= 0.01) { if (sfuma.style.visibility !== 'hidden') sfuma.style.visibility = 'hidden'; return; }
+  if (!taglio) misuraTaglio();
+  const vl = v.videoWidth || 1600, va = v.videoHeight || 1600;
+  const L = film.clientWidth, A = film.clientHeight;
+  if (!L || !A) return;
+  const k = taglio.contieni ? Math.min(L / vl, A / va) : Math.max(L / vl, A / va);
+  const dl = vl * k, da_ = va * k;
+  const ox = (L - dl) * taglio.px, oy = (A - da_) * taglio.py;
+  const P = [];
+  for (let i = 0; i < 8; i += 2) P.push([ox + d.q[i] * dl, oy + d.q[i + 1] * da_]);
+
+  /* I bordi veri della scritta, prima di allargare. */
+  const suS  = Math.min(P[0][1], P[1][1]), giuS = Math.max(P[2][1], P[3][1]);
+  const sxS  = Math.min(P[0][0], P[3][0]), dxS  = Math.max(P[1][0], P[2][0]);
+  const alta = Math.max(2, giuS - suS), larga = Math.max(2, dxS - sxS);
+
+  /* La scatola esce oltre la scritta, e TUTTO quello che esce e' bordo sfumato:
+     dentro si sfuoca pieno, verso fuori si spegne fino a sparire, cosi' il
+     riquadro non si vede. Sopra si sale poco, per restare sotto la modanatura. */
+  const x0 = sxS - larga * LATI,  x1 = dxS + larga * LATI;
+  const y0 = suS - alta * SOPRA,  y1 = giuS + alta * SOTTO;
+  const lar = Math.max(2, x1 - x0), alt = Math.max(2, y1 - y0);
+
+  /* La maschera si calcola sulla scatola VERA, non su percentuali fisse: con la
+     fascia storta la scatola cambia forma e il pieno non combacerebbe piu'. */
+  const mSu  = ((suS - y0) / alt * 100).toFixed(1);
+  const mGiu = (((giuS + alta * PIENO_GIU) - y0) / alt * 100).toFixed(1);
+  const mSx  = ((sxS - x0) / lar * 100).toFixed(1);
+  const mDx  = ((dxS - x0) / lar * 100).toFixed(1);
+  const m = `linear-gradient(to bottom,transparent 0,#000 ${mSu}%,#000 ${mGiu}%,transparent 100%),` +
+            `linear-gradient(to right,transparent 0,#000 ${mSx}%,#000 ${mDx}%,transparent 100%)`;
+  if (m !== maschera) {
+    maschera = m;
+    sfuma.style.webkitMaskImage = m; sfuma.style.maskImage = m;
+    sfuma.style.webkitMaskComposite = 'source-in'; sfuma.style.maskComposite = 'intersect';
+  }
+
+  /* Su schermo largo il podio esce dal bordo basso del ritaglio prima della
+     fine: li' non c'e' piu' niente da coprire e la sfumatura si spegne, come la
+     pietra su cui sta. Il conto e' sullo schermo vero, quindi vale a ogni misura
+     di finestra e sul telefono non scatta. */
+  let op = d.op;
+  if (giuS > A) op *= morsa((A - suS) / Math.max(1, giuS - suS), 0, 1);
+  if (op <= 0.01) { sfuma.style.visibility = 'hidden'; return; }
+
+  /* Sfocatura in proporzione all'altezza della fascia: da lontano non cancella
+     tutto, da vicino basta. 0,085 e' il punto giusto: le lettere spariscono e
+     al marmo resta un po' della sua venatura. Piu' su diventa una lastra piatta. */
+  const quanto = Math.max(1.3, alt * 0.085).toFixed(2);
+  sfuma.style.visibility = 'visible';
+  sfuma.style.opacity = (op * VELATURA).toFixed(3);
+  sfuma.style.left = x0.toFixed(1) + 'px';
+  sfuma.style.top = y0.toFixed(1) + 'px';
+  sfuma.style.width = lar.toFixed(1) + 'px';
+  sfuma.style.height = alt.toFixed(1) + 'px';
+  const f = `blur(${quanto}px) contrast(0.96) brightness(1.01)`;
+  sfuma.style.backdropFilter = f;
+  sfuma.style.webkitBackdropFilter = f;
+}
+
+
+/* quando il fotogramma chiesto e' comparso, si puo' chiedere il prossimo */
+v.addEventListener('seeked', () => { cercando = false; });
+
+/* ---------------- lo stato ---------------- */
+let indice = 0, bersaglio = 0;      // dove sono, dove sto andando
+let partenzaT = TAPPE[0].t;         // il secondo da cui è cominciato il viaggio
+let versoAvanti = true;
+let t0Indietro = 0;                 // quando è cominciato il ritorno
+let durataInd = 0.5;                // e quanto deve durare, secondo la distanza
+let cercando = false, cercaDaQuando = 0;   // un fotogramma per volta, all'indietro
+let t0Fermo = 0;                    // il cronometro per i passaggi a immagine ferma
+let ultimoGesto = 0;                // per il riposo fra un gesto e l'altro
+let arrivatoIl = 0;                 // quando sono atterrato sulla tappa
+let completoIl = 0;                 // quando il pannello e' arrivato per intero
+let fretta = 0;                     // quanto sta spingendo chi scorre
+let acceso = false;                 // il video ha avuto il permesso di suonare
+
+function inViaggio() { return indice !== bersaglio; }
+function respiroDi(x) { return (x.respiro || RESPIRO) / (1 + fretta * 0.24); }
+function tettoDi(x)   { return fretta ? 3.0 : (x.tetto || MAX_V); }
+
+function punta(i) {
+  i = morsa(Math.round(i), 0, ULTIMA);
+  if (i === bersaglio) return;
+  /* Fermi, il secondo giusto e' quello della tappa, non quello che dice il
+     video: se una ricerca non e' andata a buon fine il video mente. */
+  if (!inViaggio()) partenzaT = TAPPE[indice].t;
+  else if ((i > bersaglio) !== versoAvanti) partenzaT = v.currentTime;
+  versoAvanti = i > indice;
+  bersaglio = i;
+  chiudiTutto();
+  tappaMostrata = -1;
+  if (versoAvanti) {
+    t0Fermo = 0;
+    const b = TAPPE[bersaglio];
+    // prima di suonare ci si mette al punto di partenza, se il video se n'e' andato
+    if (Math.abs(v.currentTime - partenzaT) > 0.15) v.currentTime = partenzaT;
+    const resta = Math.max(0.05, b.t - partenzaT);
+    v.playbackRate = morsa(resta / respiroDi(b), MIN_V, tettoDi(b));
+    suona();
+  } else {
+    t0Indietro = performance.now();
+    durataInd = indietroQuanto(partenzaT, TAPPE[bersaglio].t, TAPPE[bersaglio]);
+    if (!v.paused) v.pause();
+  }
+}
+/* IL COMANDO VALE SOLO A PANNELLO APERTO.
+   Un gesto dato mentre il film cammina si butta: non si accoda, non si ricorda.
+   Chi scrolla cinque volte durante l'animazione non va avanti di cinque tappe,
+   e nemmeno di una: deve scrollare di nuovo quando il pannello e' li'. */
+function gestoValido(ora) {
+  if (!pronto) return false;        // il filmato non e' ancora qui: si aspetta
+  if (inViaggio() || !coppiaCompleta) return false;
+  return ora - Math.max(arrivatoIl, completoIl) >= SOSTA_MIN;
+}
+
+/* Quanto dura il ritorno: come l'andata, ma di un terzo piu' svelto. Cosi' un
+   tratto lungo non diventa uno sfarfallio e uno corto non diventa lento. */
+function indietroQuanto(da_t, a_t, tappa) {
+  const strada = Math.abs(da_t - a_t);
+  if (strada < 0.05) return INDIETRO_MIN;
+  const vel = morsa(strada / respiroDi(tappa), MIN_V, tettoDi(tappa)) * INDIETRO_PIU;
+  return morsa(strada / vel, INDIETRO_MIN, INDIETRO_MAX);
+}
+
+function avanti() {
+  const ora = performance.now();
+  if (ora - ultimoGesto < RIPOSO) return;
+  fretta = (ora - ultimoGesto < 1000) ? Math.min(fretta + 1, 4) : 0;
+  ultimoGesto = ora;
+  if (!gestoValido(ora)) return;   // il gesto si butta: si riscorre quando c'e' il pannello
+  punta(indice + 1);
+}
+
+function indietroDi() {
+  const ora = performance.now();
+  if (ora - ultimoGesto < RIPOSO) return;
+  fretta = (ora - ultimoGesto < 1000) ? Math.min(fretta + 1, 4) : 0;
+  ultimoGesto = ora;
+  if (!gestoValido(ora)) return;   // stessa regola all'indietro
+  punta(indice - 1);
+}
+
+function suona() {
+  const p = v.play();
+  // se il permesso arriva, lo si registra: cosi' un eventuale stallo
+  // a metà viaggio si riprende da solo al giro dopo.
+  if (p && p.then) p.then(() => { acceso = true; }, () => { acceso = false; chiediIlGesto(); });
+  else acceso = true;
+}
+let inAttesaDelGesto = false;
+function chiediIlGesto() {
+  if (inAttesaDelGesto) return;
+  inAttesaDelGesto = true;
+  const via = () => {
+    inAttesaDelGesto = false; acceso = true;
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+    ['pointerdown','touchstart','keydown','wheel'].forEach(e => removeEventListener(e, via, true));
+  };
+  ['pointerdown','touchstart','keydown','wheel']
+    .forEach(e => addEventListener(e, via, { capture: true, passive: true }));
+}
+
+/* ---------------- i pannelli ---------------- */
+let suOra = [];
+function mostraLista(lista) {
+  suOra.filter(n => !lista.includes(n)).forEach(n => {
+    const el = pannelli[n]; el.classList.remove('entra'); void el.offsetWidth; el.classList.add('esce');
+  });
+  lista.filter(n => !suOra.includes(n)).forEach(n => {
+    const el = pannelli[n]; el.classList.remove('esce'); void el.offsetWidth; el.classList.add('entra');
+  });
+  suOra = lista.slice();
+}
+
+/* la scena a due tempi dell'ultima tappa */
+let crono = null, tappaMostrata = -1, coppiaCompleta = false;
+function apriCoppia(x) {
+  const a = pannelli[x.pop], b = pannelli[x.poi];
+  a.style.transform = 'translateY(0)';
+  b.style.transform = 'translateY(0)';
+  coppiaCompleta = false;
+  mostraLista([x.pop]);
+  crono = setTimeout(() => {
+    const ha = a.querySelector('.telaio').offsetHeight;
+    const hb = b.querySelector('.telaio').offsetHeight;
+    if (a.classList.contains('basso')) {
+      /* Ancorati in basso: il primo sale di tutta l'altezza del secondo e il
+         secondo resta dov'e'. Spartendo lo spostamento a meta', come si fa
+         quando sono centrati, il secondo finirebbe sotto il bordo. */
+      a.style.transform = 'translateY(' + (-(hb + STACCO)).toFixed(1) + 'px)';
+      b.style.transform = 'translateY(0)';
+    } else {
+      a.style.transform = 'translateY(' + (-(hb + STACCO) / 2).toFixed(1) + 'px)';
+      b.style.transform = 'translateY(' + ((ha + STACCO) / 2).toFixed(1) + 'px)';
+    }
+    mostraLista([x.pop, x.poi]);
+    coppiaCompleta = true; completoIl = performance.now();
+  }, ATTESA_COPPIA);
+}
+function apriTappa(x) {
+  if (crono) { clearTimeout(crono); crono = null; }
+  if (x.poi) apriCoppia(x);
+  else { coppiaCompleta = true; completoIl = performance.now();
+         mostraLista(x.pop ? [x.pop] : []); }
+}
+function chiudiTutto() {
+  if (crono) { clearTimeout(crono); crono = null; }
+  coppiaCompleta = false;
+  mostraLista([]);
+}
+
+/* ---------------- il battito ---------------- */
+function battito(ora) {
+  const alto  = innerHeight || 1;
+  const corsa = document.documentElement.scrollHeight - innerHeight;
+  const da = TAPPE[indice], a = TAPPE[bersaglio];
+  let u = 1;
+
+  if (inViaggio()) {
+    if (versoAvanti) {
+      const salto = a.t - partenzaT;
+      if (salto > 0.05) {
+        u = morsa((v.currentTime - partenzaT) / salto, 0, 1);
+        if (v.currentTime >= a.t - 0.03) atterra();
+      } else {                                   // stessa immagine (pop4 → pop5)
+        if (!t0Fermo) t0Fermo = ora;
+        u = morsa((ora - t0Fermo) / 520, 0, 1);
+        if (u >= 1) { t0Fermo = 0; atterra(); }
+      }
+      if (!v.paused) {
+        const resta = Math.max(0.03, a.t - v.currentTime);
+        const resp = respiroDi(a);
+        v.playbackRate = morsa(resta / Math.max(0.30, resp * (1 - u) + 0.30), MIN_V, tettoDi(a));
+      } else if (acceso !== false) { suona(); }
+    } else {
+      /* Il filmato non si puo' far suonare al contrario: si sposta il fotogramma.
+         Ma un salto all'indietro costa, perche' il video va riletto dal fotogramma
+         chiave precedente (qui ce n'e' uno ogni 2 secondi). Se li si chiedono a
+         raffica il computer li scarta e si vede solo l'ultimo: ecco il "salto".
+         Quindi se ne chiede uno solo per volta, e il prossimo parte quando il
+         precedente e' comparso davvero. Cosi' ogni fotogramma chiesto si vede. */
+      u = morsa((ora - t0Indietro) / (durataInd * 1000), 0, 1);
+      const meta = partenzaT + (a.t - partenzaT) * dolce(u);
+      if (!cercando || ora - cercaDaQuando > 320) {
+        cercando = true; cercaDaQuando = ora; v.currentTime = meta;
+      }
+      if (u >= 1) atterra();
+    }
+    // la pagina segue il film, non il contrario
+    const sch = da.sch + (a.sch - da.sch) * dolce(u);
+    scrollTo(0, sch * alto);
+    // il pannello non aspetta la fermata: entra mezzo secondo prima
+    if (tappaMostrata !== bersaglio) {
+      const quasi = versoAvanti
+        ? (a.t - v.currentTime) / Math.max(0.1, v.playbackRate || 1) <= (a.anticipo || ANTICIPO)
+        : (1 - u) * durataInd <= (a.anticipo || ANTICIPO);
+      if (quasi) { tappaMostrata = bersaglio; apriTappa(a); }
+    }
+  } else {
+    if (!v.paused && Math.abs(v.currentTime - da.t) < 0.25) v.pause();
+    if (Math.abs(v.currentTime - da.t) > 0.03 && v.paused) v.currentTime = da.t;
+    // ...e solo se la coda non ha gia' fatto ripartire il viaggio in questo stesso giro
+    if (!inViaggio() && tappaMostrata !== indice) { tappaMostrata = indice; apriTappa(da); }
+  }
+
+  try { muoviSfuma(v.currentTime); }
+  catch (e) { sfuma.style.visibility = 'hidden'; }   // un ritocco non ferma il film
+
+  // il velo sul video
+  const g = morsa((v.currentTime - VELO_DA) / (VELO_A - VELO_DA), 0, 1);
+  film.style.opacity = (1 - (1 - VELO) * g).toFixed(3);
+  scuro.style.opacity = (!inViaggio() && da.pop) ? 0.30 : 0;
+  // l'invito a scorrere non compare finche' il filmato non e' arrivato:
+  // meglio non chiedere un gesto a cui non si puo' ancora rispondere
+  scorri.classList.toggle('acceso', pronto && indice === 0 && !inViaggio());
+  // finche' il filmato non c'e' si dice che sta arrivando: lo schermo nero
+  // da solo sembra una pagina rotta
+  attesa.classList.toggle('acceso', !pronto && performance.now() - nata > 1500);
+  /* Sull'ultima tappa a due tempi non si dice piu' "continua a scorrere":
+     si fa vedere il piede di pagina che comincia a salire. */
+  const allaFine = !inViaggio() && !!da.poi && coppiaCompleta;
+  continua.classList.toggle('acceso', !inViaggio() && !!da.pop && coppiaCompleta && !da.poi);
+  zoccolo.classList.toggle('acceso', allaFine);
+
+  /* La barretta non si riempie: scende. E' alta il 12% del bordo, quindi
+     corre da 0 all'88% del percorso. */
+  const avanti_ = corsa > 0 ? morsa(scrollY / corsa, 0, 1) : 0;
+  riempi.style.top = (avanti_ * 88).toFixed(2) + '%';
+
+  quadrante.textContent =
+    'secondo ' + v.currentTime.toFixed(2) + ' / 19,33  ·  tappa ' +
+    (inViaggio() ? da.nome + ' → ' + a.nome : da.nome) +
+    '  ·  ' + (v.paused ? 'ferma' : v.playbackRate.toFixed(2) + '×') +
+    '  ·  video ' + Math.round(film.style.opacity * 100) + '%' +
+    (sfumaViva > 0.01 ? '  ·  scritte sfumate ' + Math.round(sfumaViva * 100) + '%' : '');
+
+  requestAnimationFrame(battito);
+}
+
+function atterra() {
+  cercando = false;
+  arrivatoIl = performance.now();
+  indice = bersaglio;
+  partenzaT = TAPPE[indice].t;
+  if (!v.paused) v.pause();
+  v.currentTime = TAPPE[indice].t;
+  scrollTo(0, TAPPE[indice].sch * (innerHeight || 1));
+}
+
+/* ---------------- i gesti ---------------- */
+function nelFilm() { return scrollY < (SCHERMATE + 0.4) * (innerHeight || 1); }
+
+addEventListener('wheel', e => {
+  if (!nelFilm()) return;
+  if (e.deltaY > 0 && bersaglio >= ULTIMA) return;    // oltre l'ultima tappa si scorre normale
+  e.preventDefault();
+  if (e.deltaY > 0) avanti(); else indietroDi();
+}, { passive: false });
+
+addEventListener('keydown', e => {
+  if (!nelFilm()) return;
+  if (e.key === 'Home') { e.preventDefault(); punta(0); }
+  else if (e.key === 'End') { e.preventDefault(); punta(ULTIMA); }
+  else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+    if (bersaglio >= ULTIMA) return; e.preventDefault(); avanti();
+  } else if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); indietroDi(); }
+});
+
+let dito = 0;
+addEventListener('touchstart', e => { dito = e.touches[0].clientY; }, { passive: true });
+addEventListener('touchmove', e => {
+  if (!nelFilm()) return;
+  const y = e.touches[0].clientY;
+  if (dito - y > 70 && bersaglio < ULTIMA) { e.preventDefault(); dito = y; avanti(); }
+  else if (y - dito > 70) { e.preventDefault(); dito = y; indietroDi(); }
+}, { passive: false });
+
+/* ---------------- si parte ---------------- */
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  Object.values(pannelli).forEach(el => el.classList.add('entra'));
+  quadrante.style.display = 'none';
+} else {
+  // Si resta sul nero del primo fotogramma: niente parte da solo.
+  // L'accensione della luce e tutta l'animazione sono dentro il primo gesto,
+  // e tornando indietro si ritorna qui, al buio.
+  v.addEventListener('loadedmetadata', () => { v.currentTime = 0; v.pause(); }, { once: true });
+  requestAnimationFrame(battito);
+}
+})();
+</script>
