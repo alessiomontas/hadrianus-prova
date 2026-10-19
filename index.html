@@ -165,7 +165,11 @@ p{margin:0}
 #zoccolo{position:fixed;left:0;right:0;bottom:0;z-index:26;height:clamp(34px,5.5vh,52px);
   background:linear-gradient(to top,#000 38%,rgba(0,0,0,0));border-top:1px solid rgba(200,162,75,.45);
   display:flex;align-items:center;justify-content:center;pointer-events:none;
-  opacity:0;transform:translateY(100%);transition:opacity .5s ease,transform .5s ease}
+  opacity:0;transform:translateY(100%);
+  /* stessa durata e stessa curva dei pannelli: .85s e la curva di dalLampione.
+     Prima era mezzo secondo in "ease" — un ritmo diverso da tutto il resto. */
+  transition:opacity .85s cubic-bezier(.16,.84,.34,1),
+             transform .85s cubic-bezier(.16,.84,.34,1)}
 #zoccolo.acceso{opacity:1;transform:none}
 #zoccolo::before{content:'';width:0;height:0;border-left:7px solid transparent;
   border-right:7px solid transparent;border-bottom:9px solid var(--dieci);
@@ -214,6 +218,23 @@ p{margin:0}
 .piede{margin-top:16px;display:flex;flex-wrap:wrap;gap:.3rem 1.6rem;
   font-size:.88rem;color:#8A7F71;font-variant-numeric:tabular-nums}
 .piede .posta{color:var(--crema)}
+
+/* IL PIEDE ENTRA COME UN PANNELLO.
+   Stessa animazione (dalLampione), stessa durata (.85s), stessa curva, e lo
+   stesso passo fra una voce e l'altra delle liste dei pannelli (0,11 s).
+   Prima arrivava tutto insieme con una transizione di mezzo secondo: un ritmo
+   estraneo, e si sentiva che era un pezzo di un'altra pagina.
+   La classe 'pronta' la mette lo script: se lo script non gira, il piede si
+   vede comunque — non si nasconde mai qualcosa che poi nessuno riaccende. */
+.chiusa.pronta .dentro > *{opacity:0}
+.chiusa.pronta.viva .dentro > *{animation:dalLampione .85s cubic-bezier(.16,.84,.34,1) both}
+.chiusa.pronta.viva .dentro > *:nth-child(1){animation-delay:0s}
+.chiusa.pronta.viva .dentro > *:nth-child(2){animation-delay:.11s}
+.chiusa.pronta.viva .dentro > *:nth-child(3){animation-delay:.22s}
+.chiusa.pronta.viva .dentro > *:nth-child(4){animation-delay:.33s}
+.chiusa.pronta.viva .dentro > *:nth-child(5){animation-delay:.44s}
+@media (prefers-reduced-motion:reduce){
+  .chiusa.pronta .dentro > *{opacity:1;animation:none}}
 
 /* ---------------- quadrante di regia ---------------- */
 .quadrante{position:fixed;left:12px;bottom:12px;z-index:50;
@@ -364,6 +385,12 @@ addEventListener('unhandledrejection', e => {
    19/10/2026 su tutti e 580 i fotogrammi (peso del fotogramma = quanto si
    muove; dettaglio = quanto e' a fuoco):
 
+   E dal 19/10 anche la SIMMETRIA, misurata specchiando ogni fotogramma e
+   confrontandolo con se' stesso. Il film ha solo DUE momenti simmetrici:
+   6,6-7,6 (il tempio in faccia dalla piazza, fino a 0,95) e dal 12,5 in poi
+   (la facciata tornata in asse, 0,82). In mezzo c'e' l'orbita, dove la
+   simmetria crolla a zero e sotto zero.
+
      4,60  dettaglio 101  il vicolo acceso, la strada al centro
      6,30  dettaglio  51  IL PIU' MOSSO DELLA ZONA: la macchina corre dentro
                           la piazza, la sfocatura di movimento e' COTTA nel file
@@ -391,17 +418,23 @@ const TAPPE = [
   // respiro corto: da pop1 a qui sono 3 secondi di film, e con il respiro
   // normale (1,9) la tratta durava 1,9 s e si sentiva lunga. A 1,45 il film
   // corre a 2,07x e il passaggio dura 1,45 s.
-  { nome: 'pop2',     t:  7.60, sch: 3.0, pop: 'pop2', respiro: 1.45 },
+  // 7,30 e non 7,60: simmetria 0,925 contro 0,859, e il dettaglio e' lo stesso.
+  { nome: 'pop2',     t:  7.30, sch: 3.0, pop: 'pop2', respiro: 1.45 },
   // le colonne portanti, sulla FACCIATA vista in asse: le colonne si contano
   // RIMESSO DOV'ERA (9,90) finche' Alessio non sceglie: l'avevo spostato di
   // mia iniziativa e il momento non era quello che voleva.
-  { nome: 'pop3',     t:  9.90, sch: 4.5, pop: 'pop3', respiro: 1.5 },
+  // LA FACCIATA TORNATA IN ASSE. Simmetria 0,821 e dettaglio 210: il
+  // fotogramma piu' nitido di tutto il film. Da pop2 a qui c'e' l'orbita
+  // intera, 5,4 secondi di film: e' il movimento piu' bello che abbiamo.
+  { nome: 'pop3',     t: 12.70, sch: 4.5, pop: 'pop3', respiro: 1.5 },
   // una sola tappa, due tempi: compare il 4, sale, e arriva il 5. Da solo.
   // Sul fotogramma piu' nitido che il film abbia: qui si chiede il sopralluogo.
-  { nome: 'finale',   t: 12.40, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70, respiro: 1.5 },
-  // l'ultimo gesto: la luce cala in fretta e sale il piede di pagina.
-  // Si chiude a 16,30 e i 3 secondi di coda sfocata non si vedono piu'.
-  { nome: 'chiusura', t: 16.30, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
+  { nome: 'finale',   t: 13.30, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70, respiro: 1.5 },
+  /* STESSO SECONDO DEL 'finale': il filmato NON si muove piu'. Il piede di
+     pagina sale sullo stesso identico sfondo che aveva il quarto pannello,
+     come ha chiesto Alessio. Il motore ha gia' il passaggio a immagine ferma
+     (era nato per il 4->5): mezzo secondo di sola pagina che scorre. */
+  { nome: 'chiusura', t: 13.30, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
 ];
 const ATTESA_COPPIA = 1200;   // quanto resta solo il primo prima che arrivi il secondo
 const STACCO = 16;            // lo spazio fra i due pannelli
@@ -497,6 +530,7 @@ const scuro     = document.getElementById('scuro');
 const scorri    = document.getElementById('scorri');
 const continua  = document.getElementById('continua');
 const zoccolo   = document.getElementById('zoccolo');
+const chiusa    = document.getElementById('parliamone');
 const attesa    = document.getElementById('attesa');
 const quadrante = document.getElementById('quadrante');
 const riempi    = document.getElementById('riempi');
@@ -729,6 +763,7 @@ function punta(i) {
     v.playbackRate = morsa(resta / respiroDi(b), MIN_V, tettoDi(b));
     suona();
   } else {
+    t0Fermo = 0;
     t0Indietro = performance.now();
     durataInd = indietroQuanto(partenzaT, TAPPE[bersaglio].t, TAPPE[bersaglio]);
     /* Il passo: quanti fotogrammi si arretra per ogni ricerca. Si vorrebbero
@@ -912,9 +947,15 @@ function battito(ora) {
          atterra solo quando il film e' arrivato sul serio. Se una ricerca
          tarda, si RICHIEDE QUELLA, non se ne salta una avanti. */
       const strada = partenzaT - a.t;
-      u = Math.abs(strada) > 0.01
-        ? morsa((partenzaT - v.currentTime) / strada, 0, 1)
-        : 1;
+      if (Math.abs(strada) <= 0.05) {
+        /* Stessa immagine (chiusura -> finale): non c'e' niente da cercare,
+           ma non ci si butta neanche dentro di colpo. Mezzo secondo, come
+           all'andata. */
+        if (!t0Fermo) t0Fermo = ora;
+        u = morsa((ora - t0Fermo) / 520, 0, 1);
+        if (u >= 1) { t0Fermo = 0; atterra(); }
+      } else {
+      u = morsa((partenzaT - v.currentTime) / strada, 0, 1);
       if (!cercando) {
         if (v.currentTime <= a.t + FOTOGRAMMA * 0.75) { atterra(); }
         else {
@@ -929,6 +970,7 @@ function battito(ora) {
         }
       } else if (ora - cercaDaQuando > 700) {
         cercaDaQuando = ora; v.currentTime = metaInd;   // la stessa, non un'altra
+      }
       }
     }
     // la pagina segue il film, non il contrario
@@ -966,6 +1008,10 @@ function battito(ora) {
     !pronto && sbloccato && performance.now() - nata > 2500);
   /* Sull'ultima tappa a due tempi non si dice piu' "continua a scorrere":
      si fa vedere il piede di pagina che comincia a salire. */
+  /* Il piede si accende quando si e' ARRIVATI sull'ultima tappa, non quando
+     si parte: cosi' entra con il suo tempo, come fa un pannello. Tornando
+     indietro si spegne, e la volta dopo rientra da capo. */
+  chiusa.classList.toggle('viva', indice === ULTIMA && !inViaggio());
   const allaFine = !inViaggio() && !!da.poi && coppiaCompleta;
   continua.classList.toggle('acceso', !inViaggio() && !!da.pop && coppiaCompleta && !da.poi);
   zoccolo.classList.toggle('acceso', allaFine);
@@ -1034,6 +1080,7 @@ if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
   Object.values(pannelli).forEach(el => el.classList.add('entra'));
   quadrante.style.display = 'none';
 } else {
+  chiusa.classList.add('pronta');
   // Il nero di partenza lo tiene l'avvio silenzioso, qui sopra: un secondo
   // 'loadedmetadata' che facesse pause() subito gli toglieva la memoria da
   // sotto i piedi, e sull'iPhone restava senza fotogrammi.
