@@ -146,6 +146,44 @@ p{margin:0}
   from{opacity:1;filter:blur(0);transform:none}
   to  {opacity:0;filter:blur(18px);transform:scale(1.07)}}
 
+/* ---------------- la soglia: cookie e caricamento ----------------
+   Il primo schermo nero non e' piu' un'attesa muta. Si chiede il consenso, e
+   il clic su «Accetta» fa due cose in una: vale come consenso E vale come il
+   gesto che su iPhone sblocca il video. Da li' si carica il filmato PER
+   INTERO, con la percentuale in chiaro, e solo allora si parte. Cosi' quando
+   il movimento comincia non deve piu' scaricare niente. */
+#soglia{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
+  padding:clamp(18px,5vw,48px);background:rgba(0,0,0,.92);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  transition:opacity .5s ease;opacity:1}
+#soglia.via{opacity:0;pointer-events:none}
+#soglia .scatola{width:min(40rem,100%);text-align:center;
+  padding:clamp(24px,4vw,44px) clamp(22px,4vw,46px);
+  background:rgba(8,6,5,.92);border:1px solid rgba(200,162,75,.34)}
+#soglia h2{font-family:var(--display);font-weight:500;color:var(--dieci);margin:0 0 .7rem;
+  font-size:clamp(1.5rem,1.1rem + 1.7vw,2.2rem);line-height:1.15}
+#soglia p{color:var(--trenta);font-size:clamp(.98rem,.94rem + .3vw,1.1rem);
+  max-width:46ch;margin-inline:auto;line-height:1.6}
+#soglia .tasti{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;margin-top:1.5rem}
+#soglia button{font-family:var(--testo);font-size:.84rem;letter-spacing:.14em;
+  text-transform:uppercase;padding:.95em 2.1em;border-radius:2px;cursor:pointer;
+  border:1px solid rgba(200,162,75,.5);background:none;color:var(--oro-chiaro)}
+#soglia button.primario{background:var(--oro);border-color:var(--oro);color:#17110A;font-weight:600}
+#soglia button:hover{background:var(--oro-chiaro);color:#17110A}
+#dettagli{margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid rgba(200,162,75,.2);
+  text-align:left;max-height:40vh;overflow-y:auto}
+#dettagli h3{font-family:var(--display);font-weight:500;color:var(--crema);
+  font-size:1rem;margin:1.1rem 0 .3rem}
+#dettagli h3:first-child{margin-top:0}
+#dettagli p{color:var(--soft);font-size:.88rem;max-width:none;margin:0;text-align:left}
+/* il caricamento: una barretta e una percentuale, niente altro */
+#carico{margin-top:1.6rem}
+#carico .pista{height:2px;background:rgba(200,162,75,.18);overflow:hidden}
+#carico .pista i{display:block;height:100%;width:0;background:var(--oro);
+  transition:width .25s linear}
+#carico .quanto{display:block;margin-top:.7rem;font-size:.7rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--fioco)}
+
 /* ---------------- gli inviti a scorrere ---------------- */
 .invito{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:25;
   font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--fioco);
@@ -338,6 +376,47 @@ p{margin:0}
   <span class="corpo">Nessun canone fisso. Guadagniamo se guadagni tu.</span>
 </div></div>
 
+<div id="soglia" role="dialog" aria-modal="true" aria-labelledby="soglia-titolo">
+  <div class="scatola">
+    <h2 id="soglia-titolo">Prima di entrare</h2>
+    <p id="soglia-corpo">Questo sito non ti segue e non vende i tuoi dati.
+      Usa una sola memoria tecnica, sul tuo dispositivo, per ricordare questa scelta.
+      Accettando, cominciamo a caricare il filmato: serve qualche secondo, e poi
+      scorre senza interruzioni.</p>
+    <div class="tasti">
+      <button id="accetta" class="primario" type="button">Accetta</button>
+      <button id="piuinfo" class="secondario" type="button" aria-expanded="false"
+              aria-controls="dettagli">Maggiori informazioni</button>
+    </div>
+    <div id="dettagli" hidden>
+      <h3>Cosa salviamo</h3>
+      <p>Una voce sola nella memoria del browser (<i>hadrianus-consenso</i>) con la data
+        in cui hai accettato. Serve a non richiedertelo a ogni visita. Resta sul tuo
+        dispositivo: non viene mandata a nessuno e si cancella svuotando i dati del sito.</p>
+      <h3>Cosa non facciamo</h3>
+      <p>Nessun cookie di profilazione. Nessuna statistica di terze parti, nessun pixel
+        pubblicitario, nessun social collegato. Non sappiamo chi sei, da dove arrivi,
+        n&eacute; dove vai dopo.</p>
+      <h3>Cosa esce da qui</h3>
+      <p>Il carattere tipografico viene da Google Fonts: il tuo browser lo chiede ai loro
+        server, che vedono l'indirizzo IP, come per qualsiasi immagine esterna. Il filmato
+        e tutto il resto arrivano da questo stesso indirizzo.</p>
+      <h3>Se ci scrivi</h3>
+      <p>Il pulsante «Scrivici ora» apre il tuo programma di posta: il messaggio parte da
+        te e arriva a noi. Usiamo quell'indirizzo solo per risponderti.</p>
+      <h3>I tuoi diritti</h3>
+      <p>Puoi chiederci in ogni momento cosa abbiamo, farlo correggere o cancellare,
+        scrivendo a <b>info@hadrianusmultiservice.it</b>.</p>
+      <p style="margin-top:1rem;color:#6B6155">&#9888; Prova di lavoro. Questo testo va
+        confermato prima di andare online davvero.</p>
+    </div>
+    <div id="carico" hidden>
+      <span class="pista"><i id="caricoBarra"></i></span>
+      <span class="quanto" id="caricoQuanto">caricamento&hellip;</span>
+    </div>
+  </div>
+</div>
+
 <div class="invito" id="scorri">Scorri</div>
 <div class="invito" id="continua">Continua a scorrere</div>
 <div id="zoccolo" aria-hidden="true"></div>
@@ -471,7 +550,16 @@ const RIPOSO    = 430;    // un gesto = una tappa: la rotella spara 30 eventi pe
 /* Il pannello entra mezzo secondo prima della fermata e ci mette 0,85 a
    comparire: perche' resti UN SECONDO intero bello aperto, la sosta minima
    dev'essere piu' lunga di cosi'. Vale in tutte e due le direzioni. */
-const SOSTA_MIN = 1400;
+/* IL RITMO LO DETTA CHI SCORRE.
+   Regola vecchia (ottobre): un gesto dato mentre il film cammina si BUTTAVA,
+   e la sosta era 1,4 s per tutti. Chi correva si incastrava.
+   Regola nuova: il gesto si tiene da parte (uno solo) e parte appena si
+   atterra, e la sosta cambia con l'andatura —
+     chi CORRE    -> mezzo secondo: il pannello si fa vedere e si va avanti;
+     chi va PIANO -> poco piu' di un secondo, quel tanto che il pannello non
+                     sembri saltato. Chi non vuole leggere, scorre e basta. */
+const SOSTA_CORSA = 500;
+const SOSTA_CALMA = 1100;
 /* Il tempo minimo si conta da quando il pannello e' COMPLETO, non da quando
    il film si ferma: sulla scena a due tempi il secondo pannello arriva dopo,
    e il conto parte da li'. Cosi' basta un numero solo. */
@@ -530,6 +618,140 @@ v.addEventListener('loadedmetadata', () => {
   if (p && p.then) p.then(() => setTimeout(buio, 500), buio);
   else setTimeout(buio, 500);
 }, { once: true });
+
+/* ==================================================================
+   LA SOGLIA: consenso, poi caricamento, poi si parte.
+   Il clic su «Accetta» vale due volte: e' il consenso, ed e' il gesto che su
+   iPhone sblocca il video (senza un tocco vero, Safari non scarica niente).
+   Da li' si tira giu' il filmato INTERO prima di far partire il movimento:
+   e' l'unico modo perche' poi scorra senza fermarsi a scaricare.
+   ================================================================== */
+const soglia      = document.getElementById('soglia');
+const bottoneSi   = document.getElementById('accetta');
+const bottonePiu  = document.getElementById('piuinfo');
+const dettagli    = document.getElementById('dettagli');
+const carico      = document.getElementById('carico');
+const caricoBarra = document.getElementById('caricoBarra');
+const caricoQuanto= document.getElementById('caricoQuanto');
+const CHIAVE = 'hadrianus-consenso';
+let viaLibera = false;          // finche' e' falso il motore non accetta gesti
+
+function gia(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function segna(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+bottonePiu.addEventListener('click', () => {
+  const aperto = !dettagli.hidden;
+  dettagli.hidden = aperto;
+  bottonePiu.setAttribute('aria-expanded', String(!aperto));
+  bottonePiu.textContent = aperto ? 'Maggiori informazioni' : 'Chiudi';
+});
+
+function quantoCaricato() {
+  const d = v.duration;
+  if (!d || !isFinite(d) || !v.buffered || !v.buffered.length) return 0;
+  // quanto e' arrivato di seguito dall'inizio: e' quello che conta per noi
+  let fine = 0;
+  for (let i = 0; i < v.buffered.length; i++) {
+    if (v.buffered.start(i) <= 0.25) fine = Math.max(fine, v.buffered.end(i));
+  }
+  return morsa(fine / d, 0, 1);
+}
+
+/* IL FILMATO SI TIRA GIU' DAVVERO.
+   Aspettare che si riempia da solo non funziona: un video in pausa il browser
+   lo scarica fin dove gli pare e poi smette — misurato qui, si ferma all'89%
+   e non si muove piu'.
+   Allora lo si chiede noi con una richiesta normale e si legge il flusso byte
+   per byte: cosi' la percentuale e' VERA (byte arrivati su byte totali) e il
+   file finisce nella cache del browser. Quando poi il filmato lo chiede, se lo
+   trova gia' li' e non deve scaricare niente mentre si muove.
+   NON si costruisce un blob: su iPhone Safari non sa leggere un video da un
+   blocco in memoria, e la pagina resterebbe nera. Qui si butta via tutto: ci
+   interessa solo che il file sia passato dalla rete. */
+let scaricatoTutto = false;
+let vero = false;              // la percentuale viene dai byte veri, non da una stima
+async function tiraGiuIlFilmato() {
+  try {
+    const r = await fetch(FILMATO, { cache: 'force-cache' });
+    if (!r.ok || !r.body) throw new Error('niente corpo');
+    const totali = +(r.headers.get('content-length') || 0);
+    const lettore = r.body.getReader();
+    let presi = 0;
+    for (;;) {
+      const { done, value } = await lettore.read();
+      if (done) break;
+      presi += value.length;
+      if (totali) { vero = true; mostraCarico(presi / totali); }
+    }
+    scaricatoTutto = true; vero = true;
+    mostraCarico(1);
+  } catch (e) {
+    scaricatoTutto = false;        // si ripiega sul conto del browser
+  }
+}
+
+function mostraCarico(q) {
+  q = morsa(q, 0, 1);
+  caricoBarra.style.width = (q * 100).toFixed(1) + '%';
+  caricoQuanto.textContent = q >= 0.999 ? 'pronto' : 'caricamento ' + Math.round(q * 100) + '%';
+}
+
+let soglieAperta = performance.now();
+function apriLaStrada() {
+  if (viaLibera) return;
+  viaLibera = true;
+  soglia.classList.add('via');
+  setTimeout(() => { soglia.hidden = true; }, 600);
+}
+
+function seguiIlCarico() {
+  const passati = performance.now() - soglieAperta;
+  /* Si parte quando il file e' passato tutto dalla rete. Se la richiesta
+     nostra non e' andata (rete strana, server che non collabora) si ripiega
+     su quanto dice il browser, con le uscite di sicurezza: non si resta mai
+     chiusi fuori dal proprio sito. */
+  if (scaricatoTutto) { mostraCarico(1); apriLaStrada(); return; }
+  const q = quantoCaricato();
+  if (!vero) mostraCarico(q);   // solo se non abbiamo gia' il conto dei byte
+  if ((passati > 12000 && q >= 0.85) || passati > 28000) {
+    mostraCarico(1); apriLaStrada(); return;
+  }
+  setTimeout(seguiIlCarico, 220);
+}
+
+function accettaEcarica() {
+  segna(CHIAVE, new Date().toISOString().slice(0, 10));
+  bottoneSi.disabled = true; bottonePiu.disabled = true;
+  dettagli.hidden = true;
+  document.getElementById('soglia-titolo').textContent = 'Un momento';
+  document.getElementById('soglia-corpo').textContent =
+    'Stiamo caricando il filmato per intero, cosi\u2019 dopo non si ferma mai.';
+  carico.hidden = false;
+  sblocca();                      // il gesto vero: da qui l'iPhone scarica
+  soglieAperta = performance.now();
+  tiraGiuIlFilmato();
+  seguiIlCarico();
+}
+bottoneSi.addEventListener('click', accettaEcarica);
+
+/* Chi e' gia' stato qui non se lo rivede: va dritto al caricamento. Se pero'
+   dopo due secondi e mezzo non e' arrivato niente, vuol dire che il telefono
+   aspetta un tocco: glielo si chiede, con un tasto solo. */
+if (gia(CHIAVE)) {
+  document.getElementById('soglia-titolo').textContent = 'Un momento';
+  document.getElementById('soglia-corpo').textContent =
+    'Stiamo caricando il filmato per intero, cosi\u2019 dopo non si ferma mai.';
+  bottoneSi.hidden = true; bottonePiu.hidden = true;
+  carico.hidden = false;
+  tiraGiuIlFilmato();
+  seguiIlCarico();
+  setTimeout(() => {
+    if (!viaLibera && quantoCaricato() < 0.02) {
+      bottoneSi.hidden = false; bottoneSi.textContent = 'Tocca per entrare';
+      bottoneSi.disabled = false;
+    }
+  }, 2500);
+}
 
 const pista     = document.getElementById('pista');
 const film      = document.getElementById('film');
@@ -744,6 +966,7 @@ let ultimoGesto = 0;                // per il riposo fra un gesto e l'altro
 let arrivatoIl = 0;                 // quando sono atterrato sulla tappa
 let completoIl = 0;                 // quando il pannello e' arrivato per intero
 let fretta = 0;                     // quanto sta spingendo chi scorre
+let inCoda = 0;                     // il gesto tenuto da parte: -1 indietro, +1 avanti
 let acceso = false;                 // il video ha avuto il permesso di suonare
 
 function inViaggio() { return indice !== bersaglio; }
@@ -799,9 +1022,11 @@ function punta(i) {
    Un gesto dato mentre il film cammina si butta: non si accoda, non si ricorda.
    Chi scrolla cinque volte durante l'animazione non va avanti di cinque tappe,
    e nemmeno di una: deve scrollare di nuovo quando il pannello e' li'. */
+function sostaDovuta() { return fretta ? SOSTA_CORSA : SOSTA_CALMA; }
 function gestoValido(ora) {
+  if (!viaLibera) return false;             // la soglia non e' ancora passata
   if (inViaggio() || !coppiaCompleta) return false;
-  return ora - Math.max(arrivatoIl, completoIl) >= SOSTA_MIN;
+  return ora - Math.max(arrivatoIl, completoIl) >= sostaDovuta();
 }
 
 /* Quanto dura il ritorno: come l'andata, ma di un terzo piu' svelto. Cosi' un
@@ -818,7 +1043,9 @@ function avanti() {
   if (ora - ultimoGesto < RIPOSO) return;
   fretta = (ora - ultimoGesto < 1000) ? Math.min(fretta + 1, 4) : 0;
   ultimoGesto = ora;
-  if (!gestoValido(ora)) return;   // il gesto si butta: si riscorre quando c'e' il pannello
+  if (!viaLibera) return;
+  if (!gestoValido(ora)) { inCoda = 1; return; }   // si tiene da parte, non si butta
+  inCoda = 0;
   punta(indice + 1);
 }
 
@@ -827,7 +1054,9 @@ function indietroDi() {
   if (ora - ultimoGesto < RIPOSO) return;
   fretta = (ora - ultimoGesto < 1000) ? Math.min(fretta + 1, 4) : 0;
   ultimoGesto = ora;
-  if (!gestoValido(ora)) return;   // stessa regola all'indietro
+  if (!viaLibera) return;
+  if (!gestoValido(ora)) { inCoda = -1; return; }  // stessa regola all'indietro
+  inCoda = 0;
   punta(indice - 1);
 }
 
@@ -999,6 +1228,15 @@ function battito(ora) {
     if (Math.abs(v.currentTime - da.t) > FOTOGRAMMA * 1.5 && v.paused) v.currentTime = da.t;
     // ...e solo se la coda non ha gia' fatto ripartire il viaggio in questo stesso giro
     if (!inViaggio() && tappaMostrata !== indice) { tappaMostrata = indice; apriTappa(da); }
+    /* Il gesto tenuto da parte riparte qui, appena il pannello e' completo e
+       la sosta dovuta e' passata. Un solo posto in coda: chi scorre cinque
+       volte non fa cinque tappe, ne fa una in piu'. */
+    if (inCoda && !inViaggio() && coppiaCompleta &&
+        ora - Math.max(arrivatoIl, completoIl) >= sostaDovuta()) {
+      const dove = inCoda; inCoda = 0;
+      const meta = morsa(indice + dove, 0, ULTIMA);
+      if (meta !== indice) punta(meta);
+    }
   }
 
   /* LA SFUMATURA SI SPEGNE MENTRE SI VIAGGIA.
@@ -1023,11 +1261,11 @@ function battito(ora) {
   /* L'invito si vede SEMPRE sulla prima tappa, anche se il filmato non e'
      ancora arrivato: e' il gesto che lo fa partire, quindi nasconderlo
      significa non far partire niente. */
-  scorri.classList.toggle('acceso', indice === 0 && !inViaggio());
+  scorri.classList.toggle('acceso', viaLibera && indice === 0 && !inViaggio());
   /* "un attimo..." solo se il dito ha gia' chiesto e il filmato tarda: da
      solo, sulla prima tappa nera, sembrava una pagina rotta per sempre. */
-  attesa.classList.toggle('acceso',
-    !pronto && sbloccato && performance.now() - nata > 2500);
+  // «un attimo...» non serve piu': l'attesa ce l'ha la soglia, con la percentuale
+  attesa.classList.remove('acceso');
   /* Sull'ultima tappa a due tempi non si dice piu' "continua a scorrere":
      si fa vedere il piede di pagina che comincia a salire. */
   /* Il piede si accende quando si e' ARRIVATI sull'ultima tappa, non quando
