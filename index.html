@@ -14,6 +14,13 @@
   --testo:Archivo,"Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box}
+/* QUESTA RIGA NON SI TOGLIE.
+   L'attributo `hidden` vale `display:none`, ma e' una regola debolissima: un
+   solo selettore con un id e un `display:grid` la scavalca senza dire niente.
+   E' successo davvero: il pannello del consenso restava in mezzo allo schermo
+   anche dopo «Accetta», perche' `#soglia{display:grid}` vinceva su `hidden`.
+   Con `!important` qui, `elemento.hidden = true` nasconde e basta. */
+[hidden]{display:none!important}
 /* Via la barra di scorrimento del browser: qui lo scorrimento lo comanda il
    motore, quella striscia bianca sul bordo non serve e si vede, soprattutto
    sul telefono. */
@@ -27,7 +34,11 @@ p{margin:0}
 /* ---------------- barra in alto ---------------- */
 .barra{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;
   justify-content:space-between;padding:14px clamp(16px,4vw,38px);
-  background:linear-gradient(to bottom,rgba(0,0,0,.74),rgba(0,0,0,0))}
+  background:linear-gradient(to bottom,rgba(0,0,0,.74),rgba(0,0,0,0));
+  /* non c'e' dal primo istante: entra dopo il nero voluto */
+  opacity:0;transform:translateY(-10px);
+  transition:opacity .9s ease,transform .9s cubic-bezier(.16,.84,.34,1)}
+.barra.entra{opacity:1;transform:none}
 .barra .marchio{font-family:var(--display);font-size:clamp(.8rem,.72rem + .3vw,1rem);
   letter-spacing:.3em;color:var(--crema)}
 .barra a{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--oro-chiaro);
@@ -152,12 +163,18 @@ p{margin:0}
    filmato sta nascosto dentro questa sequenza, che da fuori e' semplicemente
    il modo in cui il sito si apre. Il clic su «Accetta» intanto vale come il
    gesto che su iPhone sblocca il video. */
+/* TUTTI GLI STATI DELLA SOGLIA STANNO QUI, IN ORDINE: riposo, entrata,
+   uscita. Prima l'uscita stava 180 righe piu' in la' e pesava uguale
+   all'entrata: vinceva l'entrata, e cliccando «Accetta» il pannello RESTAVA
+   in mezzo allo schermo. Se un giorno si aggiunge uno stato, si aggiunge qui
+   sotto, in fondo. */
 #soglia{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
   padding:clamp(18px,5vw,48px);background:rgba(0,0,0,.92);
   -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
-  transition:opacity .5s ease}
+  opacity:0;transition:opacity .5s ease}
+#soglia.entra{opacity:1}
 #soglia.via{opacity:0;pointer-events:none}
-#soglia .scatola{width:min(40rem,100%);text-align:center;
+#soglia .scatola{animation:none;width:min(40rem,100%);text-align:center;
   padding:clamp(24px,4vw,44px) clamp(22px,4vw,46px);
   background:rgba(8,6,5,.92);border:1px solid rgba(200,162,75,.34)}
 #soglia h2{font-family:var(--display);font-weight:500;color:var(--dieci);margin:0 0 .7rem;
@@ -170,6 +187,8 @@ p{margin:0}
   border:1px solid rgba(200,162,75,.5);background:none;color:var(--oro-chiaro)}
 #soglia button.primario{background:var(--oro);border-color:var(--oro);color:#17110A;font-weight:600}
 #soglia button:hover{background:var(--oro-chiaro);color:#17110A}
+#soglia.entra .scatola{animation:dalLampione .85s cubic-bezier(.16,.84,.34,1) both}
+#soglia.via .scatola{animation:none}
 #dettagli{margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid rgba(200,162,75,.2);
   text-align:left;max-height:40vh;overflow-y:auto}
 #dettagli h3{font-family:var(--display);font-weight:500;color:var(--crema);
@@ -187,7 +206,15 @@ p{margin:0}
 #insegna{position:fixed;inset:0;z-index:58;display:grid;place-items:center;
   background:#000;opacity:0;pointer-events:none;transition:opacity .75s ease}
 #insegna.entra{opacity:1}
-#insegna.via{opacity:0}
+#insegna.via{opacity:0;pointer-events:none}   /* per ultima, come sopra */
+/* Chi nel telefono ha chiesto «meno movimento» non deve subire nemmeno
+   l'ingresso: le cose compaiono e basta, senza salire e senza allungarsi.
+   La sequenza resta (serve a far arrivare il filmato), ma e' ferma. */
+@media (prefers-reduced-motion:reduce){
+  .barra,#soglia,#insegna{transition:none}
+  #soglia.entra .scatola,#insegna .marchio,#insegna .filo,#insegna .sotto{animation:none}
+  #insegna .filo{width:min(18rem,54vw);opacity:1}
+}
 #insegna .marchio{font-family:var(--display);font-weight:500;color:var(--crema);
   font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;
   text-indent:.42em;text-align:center;
@@ -201,15 +228,6 @@ p{margin:0}
 @keyframes insegnaSale{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes filoCresce{from{width:0;opacity:0}to{width:min(18rem,54vw);opacity:1}}
 
-/* La barra in alto non c'e' dal primo istante: entra dopo il nero voluto. */
-.barra{opacity:0;transform:translateY(-10px);
-  transition:opacity .9s ease,transform .9s cubic-bezier(.16,.84,.34,1)}
-.barra.entra{opacity:1;transform:none}
-/* e il pannello del consenso entra per terzo */
-#soglia{opacity:0}
-#soglia.entra{opacity:1}
-#soglia .scatola{animation:none}
-#soglia.entra .scatola{animation:dalLampione .85s cubic-bezier(.16,.84,.34,1) both}
 
 /* ---------------- gli inviti a scorrere ---------------- */
 .invito{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:25;
@@ -406,7 +424,7 @@ p{margin:0}
 <div id="soglia" role="dialog" aria-modal="true" aria-labelledby="soglia-titolo">
   <div class="scatola">
     <h2 id="soglia-titolo">Prima di entrare</h2>
-    <p id="soglia-corpo">Questo sito non ti segue e non vende i tuoi dati.
+    <p>Questo sito non ti segue e non vende i tuoi dati.
       Usa una sola memoria tecnica, sul tuo dispositivo, per ricordare questa scelta.</p>
     <div class="tasti">
       <button id="accetta" class="primario" type="button">Accetta</button>
@@ -449,8 +467,7 @@ p{margin:0}
 <div class="invito" id="scorri">Scorri</div>
 <div class="invito" id="continua">Continua a scorrere</div>
 <div id="zoccolo" aria-hidden="true"></div>
-<div class="invito" id="attesa">un attimo&hellip;</div>
-<div class="avanzamento" aria-hidden="true"><div class="rotaia" id="rotaia"><i id="riempi"></i></div></div>
+<div class="avanzamento" aria-hidden="true"><div class="rotaia"><i id="riempi"></i></div></div>
 <div class="quadrante" id="quadrante">&mdash;</div>
 
 <main class="pista" id="pista" aria-hidden="true"></main>
@@ -609,10 +626,9 @@ const FILMATO = telefono ? 'vicolo-telefono-b.mp4'
    secondo invece che ogni due, quindi un salto costa al massimo 11 fotogrammi
    da rileggere invece di 47: si puo' saltare dove si vuole senza fatica.
    Cosi' parte subito, non si aspetta nessun download, e va uguale ovunque. */
-const nata = performance.now();
-let pronto = false;
-['loadeddata', 'canplay', 'playing'].forEach(e =>
-  v.addEventListener(e, () => { pronto = true; }));
+/* Serviva a sapere se il filmato era arrivato, per la scritta «un attimo...».
+   Adesso l'attesa la copre la sequenza d'ingresso, e quella scritta non c'e'
+   piu': restava solo a girare a vuoto sessanta volte al secondo. */
 v.src = FILMATO;
 
 /* LO SBLOCCO DELL'iPHONE.
@@ -737,12 +753,20 @@ bottoneSi.addEventListener('click', accetta);
 /* LA SEQUENZA D'APERTURA.
    nero voluto -> la barra in alto -> il consenso. Chi e' gia' stato qui salta
    il consenso e va dritto all'insegna: il tempo glielo prende quella. */
+/* Il fuoco della tastiera va sul pannello appena entra: chi naviga da
+   tastiera o con un lettore di schermo si ritrova gia' sul tasto giusto,
+   invece che in cima a una pagina coperta da qualcosa che non vede. */
+function entraIlConsenso() {
+  soglia.classList.add('entra');
+  try { bottoneSi.focus({ preventScroll: true }); } catch (e) {}
+}
+
 setTimeout(() => barraAlta.classList.add('entra'), APRE_NERO);
 if (gia(CHIAVE)) {
   soglia.hidden = true;
   setTimeout(cartaDiTesta, APRE_NERO + APRE_BARRA);
 } else {
-  setTimeout(() => soglia.classList.add('entra'), APRE_NERO + APRE_BARRA);
+  setTimeout(entraIlConsenso, APRE_NERO + APRE_BARRA);
 }
 
 const pista     = document.getElementById('pista');
@@ -752,7 +776,6 @@ const scorri    = document.getElementById('scorri');
 const continua  = document.getElementById('continua');
 const zoccolo   = document.getElementById('zoccolo');
 const chiusa    = document.getElementById('parliamone');
-const attesa    = document.getElementById('attesa');
 const quadrante = document.getElementById('quadrante');
 const riempi    = document.getElementById('riempi');
 // la pista finisce dove comincia la chiusura: l'ultima tappa ci porta dentro
@@ -1123,6 +1146,7 @@ function chiudiTutto() {
 
 /* ---------------- il battito ---------------- */
 function battito(ora) {
+ try {
   const alto  = innerHeight || 1;
   const corsa = document.documentElement.scrollHeight - innerHeight;
   const da = TAPPE[indice], a = TAPPE[bersaglio];
@@ -1256,8 +1280,6 @@ function battito(ora) {
   scorri.classList.toggle('acceso', viaLibera && indice === 0 && !inViaggio());
   /* "un attimo..." solo se il dito ha gia' chiesto e il filmato tarda: da
      solo, sulla prima tappa nera, sembrava una pagina rotta per sempre. */
-  // «un attimo...» non serve piu': l'attesa ce l'ha la soglia, con la percentuale
-  attesa.classList.remove('acceso');
   /* Sull'ultima tappa a due tempi non si dice piu' "continua a scorrere":
      si fa vedere il piede di pagina che comincia a salire. */
   /* Il piede si accende quando si e' ARRIVATI sull'ultima tappa, non quando
@@ -1280,7 +1302,18 @@ function battito(ora) {
     '  ·  video ' + Math.round(film.style.opacity * 100) + '%' +
     (sfumaViva > 0.01 ? '  ·  scritte sfumate ' + Math.round(sfumaViva * 100) + '%' : '');
 
+ } catch (e) {
+  /* IL MOTORE NON PUO' MORIRE.
+     Qui dentro ci sono una decina di tocchi al DOM e al filmato. Se uno solo
+     tira un errore — un elemento sparito, una misura impossibile, un ritocco
+     che non riesce — senza questa rete il giro si interrompe e la pagina si
+     CONGELA: niente piu' movimento, niente piu' gesti, e nessuno capisce
+     perche'. Si segna l'errore sul quadrante di regia e si tira dritto. */
+  if (quadrante) { quadrante.textContent = 'inciampo: ' + (e && e.message || e); }
+ } finally {
+  // il prossimo giro si chiede SEMPRE, qualunque cosa sia successa
   requestAnimationFrame(battito);
+ }
 }
 
 function atterra() {
