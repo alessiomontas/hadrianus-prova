@@ -146,16 +146,16 @@ p{margin:0}
   from{opacity:1;filter:blur(0);transform:none}
   to  {opacity:0;filter:blur(18px);transform:scale(1.07)}}
 
-/* ---------------- la soglia: cookie e caricamento ----------------
-   Il primo schermo nero non e' piu' un'attesa muta. Si chiede il consenso, e
-   il clic su «Accetta» fa due cose in una: vale come consenso E vale come il
-   gesto che su iPhone sblocca il video. Da li' si carica il filmato PER
-   INTERO, con la percentuale in chiaro, e solo allora si parte. Cosi' quando
-   il movimento comincia non deve piu' scaricare niente. */
+/* ---------------- la sequenza d'ingresso ----------------
+   nero voluto -> la barra in alto -> il consenso -> l'insegna -> il film.
+   A chi guarda non si dice mai che sta aspettando: il tempo che serve al
+   filmato sta nascosto dentro questa sequenza, che da fuori e' semplicemente
+   il modo in cui il sito si apre. Il clic su «Accetta» intanto vale come il
+   gesto che su iPhone sblocca il video. */
 #soglia{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
   padding:clamp(18px,5vw,48px);background:rgba(0,0,0,.92);
   -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
-  transition:opacity .5s ease;opacity:1}
+  transition:opacity .5s ease}
 #soglia.via{opacity:0;pointer-events:none}
 #soglia .scatola{width:min(40rem,100%);text-align:center;
   padding:clamp(24px,4vw,44px) clamp(22px,4vw,46px);
@@ -176,13 +176,40 @@ p{margin:0}
   font-size:1rem;margin:1.1rem 0 .3rem}
 #dettagli h3:first-child{margin-top:0}
 #dettagli p{color:var(--soft);font-size:.88rem;max-width:none;margin:0;text-align:left}
-/* il caricamento: una barretta e una percentuale, niente altro */
-#carico{margin-top:1.6rem}
-#carico .pista{height:2px;background:rgba(200,162,75,.18);overflow:hidden}
-#carico .pista i{display:block;height:100%;width:0;background:var(--oro);
-  transition:width .25s linear}
-#carico .quanto{display:block;margin-top:.7rem;font-size:.7rem;letter-spacing:.22em;
-  text-transform:uppercase;color:var(--fioco)}
+/* NIENTE BARRA DI CARICAMENTO, NIENTE PERCENTUALI.
+   A chi guarda non si dice che sta aspettando: il tempo si nasconde dentro la
+   sequenza d'ingresso. Nero voluto, poi la barra in alto, poi il consenso,
+   poi l'insegna — e intanto il filmato arriva, in silenzio, da subito. */
+
+/* L'INSEGNA: la carta di testa fra il consenso e il film. Non e' un'attesa
+   travestita, e' l'apertura del sito. Se il filmato e' gia' arrivato dura il
+   suo tempo e se ne va; se tarda, resta a respirare senza dire niente. */
+#insegna{position:fixed;inset:0;z-index:58;display:grid;place-items:center;
+  background:#000;opacity:0;pointer-events:none;transition:opacity .75s ease}
+#insegna.entra{opacity:1}
+#insegna.via{opacity:0}
+#insegna .marchio{font-family:var(--display);font-weight:500;color:var(--crema);
+  font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;
+  text-indent:.42em;text-align:center;
+  animation:insegnaSale 1.6s cubic-bezier(.16,.84,.34,1) both}
+#insegna .filo{display:block;width:0;height:1px;margin:1.2rem auto 0;
+  background:linear-gradient(to right,transparent,var(--oro),transparent);
+  animation:filoCresce 2.6s cubic-bezier(.16,.84,.34,1) .5s both}
+#insegna .sotto{display:block;margin-top:1.1rem;font-size:.6rem;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--fioco);text-align:center;
+  animation:insegnaSale 1.4s cubic-bezier(.16,.84,.34,1) .75s both}
+@keyframes insegnaSale{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes filoCresce{from{width:0;opacity:0}to{width:min(18rem,54vw);opacity:1}}
+
+/* La barra in alto non c'e' dal primo istante: entra dopo il nero voluto. */
+.barra{opacity:0;transform:translateY(-10px);
+  transition:opacity .9s ease,transform .9s cubic-bezier(.16,.84,.34,1)}
+.barra.entra{opacity:1;transform:none}
+/* e il pannello del consenso entra per terzo */
+#soglia{opacity:0}
+#soglia.entra{opacity:1}
+#soglia .scatola{animation:none}
+#soglia.entra .scatola{animation:dalLampione .85s cubic-bezier(.16,.84,.34,1) both}
 
 /* ---------------- gli inviti a scorrere ---------------- */
 .invito{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:25;
@@ -380,9 +407,7 @@ p{margin:0}
   <div class="scatola">
     <h2 id="soglia-titolo">Prima di entrare</h2>
     <p id="soglia-corpo">Questo sito non ti segue e non vende i tuoi dati.
-      Usa una sola memoria tecnica, sul tuo dispositivo, per ricordare questa scelta.
-      Accettando, cominciamo a caricare il filmato: serve qualche secondo, e poi
-      scorre senza interruzioni.</p>
+      Usa una sola memoria tecnica, sul tuo dispositivo, per ricordare questa scelta.</p>
     <div class="tasti">
       <button id="accetta" class="primario" type="button">Accetta</button>
       <button id="piuinfo" class="secondario" type="button" aria-expanded="false"
@@ -410,10 +435,14 @@ p{margin:0}
       <p style="margin-top:1rem;color:#6B6155">&#9888; Prova di lavoro. Questo testo va
         confermato prima di andare online davvero.</p>
     </div>
-    <div id="carico" hidden>
-      <span class="pista"><i id="caricoBarra"></i></span>
-      <span class="quanto" id="caricoQuanto">caricamento&hellip;</span>
-    </div>
+  </div>
+</div>
+
+<div id="insegna" aria-hidden="true">
+  <div>
+    <span class="marchio">HADRIANUS</span>
+    <span class="filo"></span>
+    <span class="sotto">Multiservice &middot; Roma e Ostia</span>
   </div>
 </div>
 
@@ -620,21 +649,28 @@ v.addEventListener('loadedmetadata', () => {
 }, { once: true });
 
 /* ==================================================================
-   LA SOGLIA: consenso, poi caricamento, poi si parte.
-   Il clic su «Accetta» vale due volte: e' il consenso, ed e' il gesto che su
-   iPhone sblocca il video (senza un tocco vero, Safari non scarica niente).
-   Da li' si tira giu' il filmato INTERO prima di far partire il movimento:
-   e' l'unico modo perche' poi scorra senza fermarsi a scaricare.
+   LA SEQUENZA D'INGRESSO.
+   Il filmato comincia ad arrivare al primo istante, in silenzio, prima di
+   qualunque clic. Intanto la pagina si apre con i suoi tempi: nero voluto,
+   la barra, il consenso, l'insegna. Nessuno vede una percentuale e nessuno
+   sta fermo a guardare un indicatore: quando il film parte, e' gia' tutto
+   in memoria. Il clic su «Accetta» serve anche da gesto per l'iPhone.
    ================================================================== */
 const soglia      = document.getElementById('soglia');
+const insegna     = document.getElementById('insegna');
+const barraAlta   = document.querySelector('.barra');
 const bottoneSi   = document.getElementById('accetta');
 const bottonePiu  = document.getElementById('piuinfo');
 const dettagli    = document.getElementById('dettagli');
-const carico      = document.getElementById('carico');
-const caricoBarra = document.getElementById('caricoBarra');
-const caricoQuanto= document.getElementById('caricoQuanto');
 const CHIAVE = 'hadrianus-consenso';
 let viaLibera = false;          // finche' e' falso il motore non accetta gesti
+
+/* I TEMPI DELL'INGRESSO. Sono scelti, non subiti: il nero di apertura e'
+   voluto, non e' un'attesa. */
+const APRE_NERO   = 1300;   // quanto resta nero prima che compaia qualcosa
+const APRE_BARRA  = 1000;   // poi la barra in alto, e dopo ancora il consenso
+const INSEGNA_MIN = 2400;   // l'insegna sta su almeno questo, anche se tutto e' pronto
+const INSEGNA_MAX = 20000;  // e non oltre questo, qualunque cosa succeda
 
 function gia(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function segna(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -646,111 +682,67 @@ bottonePiu.addEventListener('click', () => {
   bottonePiu.textContent = aperto ? 'Maggiori informazioni' : 'Chiudi';
 });
 
-function quantoCaricato() {
-  const d = v.duration;
-  if (!d || !isFinite(d) || !v.buffered || !v.buffered.length) return 0;
-  // quanto e' arrivato di seguito dall'inizio: e' quello che conta per noi
-  let fine = 0;
-  for (let i = 0; i < v.buffered.length; i++) {
-    if (v.buffered.start(i) <= 0.25) fine = Math.max(fine, v.buffered.end(i));
-  }
-  return morsa(fine / d, 0, 1);
-}
-
-/* IL FILMATO SI TIRA GIU' DAVVERO.
-   Aspettare che si riempia da solo non funziona: un video in pausa il browser
-   lo scarica fin dove gli pare e poi smette — misurato qui, si ferma all'89%
-   e non si muove piu'.
-   Allora lo si chiede noi con una richiesta normale e si legge il flusso byte
-   per byte: cosi' la percentuale e' VERA (byte arrivati su byte totali) e il
-   file finisce nella cache del browser. Quando poi il filmato lo chiede, se lo
-   trova gia' li' e non deve scaricare niente mentre si muove.
+/* IL FILMATO PARTE SUBITO, PRIMA DI TUTTO E IN SILENZIO.
+   Non si aspetta che accetti: scaricare il proprio filmato non e' tracciare
+   nessuno, e aspettare il consenso butterebbe via i secondi piu' preziosi.
+   Si legge il flusso byte per byte solo per sapere QUANDO ha finito — il
+   numero non si fa vedere a nessuno. Il file resta nella cache del browser,
+   quindi quando il filmato lo chiede lo trova gia' li'.
    NON si costruisce un blob: su iPhone Safari non sa leggere un video da un
-   blocco in memoria, e la pagina resterebbe nera. Qui si butta via tutto: ci
-   interessa solo che il file sia passato dalla rete. */
+   blocco in memoria, e la pagina resterebbe nera. */
 let scaricatoTutto = false;
-let vero = false;              // la percentuale viene dai byte veri, non da una stima
 async function tiraGiuIlFilmato() {
   try {
     const r = await fetch(FILMATO, { cache: 'force-cache' });
     if (!r.ok || !r.body) throw new Error('niente corpo');
-    const totali = +(r.headers.get('content-length') || 0);
     const lettore = r.body.getReader();
-    let presi = 0;
-    for (;;) {
-      const { done, value } = await lettore.read();
-      if (done) break;
-      presi += value.length;
-      if (totali) { vero = true; mostraCarico(presi / totali); }
-    }
-    scaricatoTutto = true; vero = true;
-    mostraCarico(1);
-  } catch (e) {
-    scaricatoTutto = false;        // si ripiega sul conto del browser
-  }
+    for (;;) { const { done } = await lettore.read(); if (done) break; }
+    scaricatoTutto = true;
+  } catch (e) { scaricatoTutto = false; }
 }
+tiraGiuIlFilmato();
 
-function mostraCarico(q) {
-  q = morsa(q, 0, 1);
-  caricoBarra.style.width = (q * 100).toFixed(1) + '%';
-  caricoQuanto.textContent = q >= 0.999 ? 'pronto' : 'caricamento ' + Math.round(q * 100) + '%';
-}
-
-let soglieAperta = performance.now();
 function apriLaStrada() {
   if (viaLibera) return;
   viaLibera = true;
-  soglia.classList.add('via');
-  setTimeout(() => { soglia.hidden = true; }, 600);
 }
 
-function seguiIlCarico() {
-  const passati = performance.now() - soglieAperta;
-  /* Si parte quando il file e' passato tutto dalla rete. Se la richiesta
-     nostra non e' andata (rete strana, server che non collabora) si ripiega
-     su quanto dice il browser, con le uscite di sicurezza: non si resta mai
-     chiusi fuori dal proprio sito. */
-  if (scaricatoTutto) { mostraCarico(1); apriLaStrada(); return; }
-  const q = quantoCaricato();
-  if (!vero) mostraCarico(q);   // solo se non abbiamo gia' il conto dei byte
-  if ((passati > 12000 && q >= 0.85) || passati > 28000) {
-    mostraCarico(1); apriLaStrada(); return;
-  }
-  setTimeout(seguiIlCarico, 220);
-}
-
-function accettaEcarica() {
-  segna(CHIAVE, new Date().toISOString().slice(0, 10));
-  bottoneSi.disabled = true; bottonePiu.disabled = true;
-  dettagli.hidden = true;
-  document.getElementById('soglia-titolo').textContent = 'Un momento';
-  document.getElementById('soglia-corpo').textContent =
-    'Stiamo caricando il filmato per intero, cosi\u2019 dopo non si ferma mai.';
-  carico.hidden = false;
-  sblocca();                      // il gesto vero: da qui l'iPhone scarica
-  soglieAperta = performance.now();
-  tiraGiuIlFilmato();
-  seguiIlCarico();
-}
-bottoneSi.addEventListener('click', accettaEcarica);
-
-/* Chi e' gia' stato qui non se lo rivede: va dritto al caricamento. Se pero'
-   dopo due secondi e mezzo non e' arrivato niente, vuol dire che il telefono
-   aspetta un tocco: glielo si chiede, con un tasto solo. */
-if (gia(CHIAVE)) {
-  document.getElementById('soglia-titolo').textContent = 'Un momento';
-  document.getElementById('soglia-corpo').textContent =
-    'Stiamo caricando il filmato per intero, cosi\u2019 dopo non si ferma mai.';
-  bottoneSi.hidden = true; bottonePiu.hidden = true;
-  carico.hidden = false;
-  tiraGiuIlFilmato();
-  seguiIlCarico();
-  setTimeout(() => {
-    if (!viaLibera && quantoCaricato() < 0.02) {
-      bottoneSi.hidden = false; bottoneSi.textContent = 'Tocca per entrare';
-      bottoneSi.disabled = false;
+/* L'INSEGNA. Fra il consenso e il film ci sta la carta di testa: il marchio
+   che sale, il filo d'oro che si allunga. Dura il suo tempo (INSEGNA_MIN) e
+   se il filmato non e' ancora arrivato aspetta li', senza dire niente a
+   nessuno. Da fuori e' l'apertura del sito, non una clessidra. */
+function cartaDiTesta() {
+  insegna.classList.add('entra');
+  const t0 = performance.now();
+  (function aspetta() {
+    const passati = performance.now() - t0;
+    if (passati >= INSEGNA_MIN && (scaricatoTutto || passati > INSEGNA_MAX)) {
+      insegna.classList.add('via');
+      apriLaStrada();
+      setTimeout(() => { insegna.hidden = true; }, 800);
+      return;
     }
-  }, 2500);
+    setTimeout(aspetta, 140);
+  })();
+}
+
+function accetta() {
+  segna(CHIAVE, new Date().toISOString().slice(0, 10));
+  sblocca();                      // il tocco vero: da qui l'iPhone puo' suonare
+  soglia.classList.add('via');
+  setTimeout(() => { soglia.hidden = true; cartaDiTesta(); }, 520);
+}
+bottoneSi.addEventListener('click', accetta);
+
+/* LA SEQUENZA D'APERTURA.
+   nero voluto -> la barra in alto -> il consenso. Chi e' gia' stato qui salta
+   il consenso e va dritto all'insegna: il tempo glielo prende quella. */
+setTimeout(() => barraAlta.classList.add('entra'), APRE_NERO);
+if (gia(CHIAVE)) {
+  soglia.hidden = true;
+  setTimeout(cartaDiTesta, APRE_NERO + APRE_BARRA);
+} else {
+  setTimeout(() => soglia.classList.add('entra'), APRE_NERO + APRE_BARRA);
 }
 
 const pista     = document.getElementById('pista');
