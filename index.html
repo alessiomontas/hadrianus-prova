@@ -780,11 +780,14 @@ function punta(i) {
        dire due ricerche che danno la stessa immagine, cioe' lavoro buttato e
        meno immagini viste. */
     const strada = Math.abs(partenzaT - TAPPE[bersaglio].t);
-    /* 24 immagini al secondo, non 30: all'indietro ogni immagine costa una
-       ricerca, e una ricerca costa la rilettura dal fotogramma chiave. A 24
-       l'occhio vede lo stesso un movimento pieno — e' la cadenza del cinema —
-       e il computer fa un quinto di lavoro in meno. */
-    const passi = Math.max(1, Math.round(durataInd * 24));
+    /* Quante immagini al secondo si chiedono tornando indietro. Ogni immagine
+       costa una ricerca, e una ricerca costa la rilettura dal fotogramma
+       chiave. Sul computer 24 (la cadenza del cinema) si reggono.
+       SUL TELEFONO NO: misurato sulla registrazione dell'iPhone 17 Pro, il
+       ritorno strisciava e si fermava mezzo secondo di fila. Meglio 13
+       immagini al secondo che ARRIVANO, che 24 chieste e una su tre che
+       si perde per strada. */
+    const passi = Math.max(1, Math.round(durataInd * (telefono ? 13 : 24)));
     passoInd = Math.max(FOTOGRAMMA,
                         Math.round(strada / passi / FOTOGRAMMA) * FOTOGRAMMA);
     metaInd = partenzaT;
@@ -998,7 +1001,19 @@ function battito(ora) {
     if (!inViaggio() && tappaMostrata !== indice) { tappaMostrata = indice; apriTappa(da); }
   }
 
-  try { muoviSfuma(v.currentTime); }
+  /* LA SFUMATURA SI SPEGNE MENTRE SI VIAGGIA.
+     E' un backdrop-filter a tutta fascia: l'effetto piu' caro della pagina, e
+     il browser lo rifa' ogni volta che il fotogramma sotto cambia. Durante un
+     passaggio il fotogramma cambia in continuazione — ed e' proprio li' che
+     sull'iPhone il movimento strisciava e si bloccava mezzo secondo.
+     Serve solo da fermi, perche' solo da fermi uno puo' leggere le scritte.
+     In movimento non si legge niente, quindi non si sfuoca niente. */
+  try {
+    if (inViaggio()) {
+      if (sfuma.style.visibility !== 'hidden') { sfuma.style.visibility = 'hidden'; sfocaOra = ''; }
+      sfumaViva = 0;
+    } else muoviSfuma(v.currentTime);
+  }
   catch (e) { sfuma.style.visibility = 'hidden'; }   // un ritocco non ferma il film
 
   // il velo sul video
