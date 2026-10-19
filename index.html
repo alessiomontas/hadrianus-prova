@@ -388,14 +388,17 @@ const TAPPE = [
   // A 6,30 la macchina stava ancora correndo dentro la piazza e il fotogramma
   // era il piu' MOSSO della zona (dettaglio 51, contro 120 a 5,00 e 109 a
   // 7,60): il fondo arrivava sfocato. A 7,60 si e' posata.
-  { nome: 'pop2',     t:  7.60, sch: 3.0, pop: 'pop2' },
+  // respiro corto: da pop1 a qui sono 3 secondi di film, e con il respiro
+  // normale (1,9) la tratta durava 1,9 s e si sentiva lunga. A 1,45 il film
+  // corre a 2,07x e il passaggio dura 1,45 s.
+  { nome: 'pop2',     t:  7.60, sch: 3.0, pop: 'pop2', respiro: 1.45 },
   // le colonne portanti, sulla FACCIATA vista in asse: le colonne si contano
   // RIMESSO DOV'ERA (9,90) finche' Alessio non sceglie: l'avevo spostato di
   // mia iniziativa e il momento non era quello che voleva.
-  { nome: 'pop3',     t:  9.90, sch: 4.5, pop: 'pop3' },
+  { nome: 'pop3',     t:  9.90, sch: 4.5, pop: 'pop3', respiro: 1.5 },
   // una sola tappa, due tempi: compare il 4, sale, e arriva il 5. Da solo.
   // Sul fotogramma piu' nitido che il film abbia: qui si chiede il sopralluogo.
-  { nome: 'finale',   t: 12.40, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70 },
+  { nome: 'finale',   t: 12.40, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70, respiro: 1.5 },
   // l'ultimo gesto: la luce cala in fretta e sale il piede di pagina.
   // Si chiude a 16,30 e i 3 secondi di coda sfocata non si vedono piu'.
   { nome: 'chiusura', t: 16.30, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
@@ -405,11 +408,23 @@ const STACCO = 16;            // lo spazio fra i due pannelli
 const ULTIMA    = TAPPE.length - 1;
 const SCHERMATE = TAPPE[ULTIMA].sch;
 
-const RESPIRO   = 1.9;    // secondi "giusti" per un passaggio: da qui esce la velocità
+/* IL RITMO. Ogni tappa porta il suo "respiro": quanto deve durare il
+   passaggio per ARRIVARE a lei. Da qui esce la velocita' del filmato
+   (strada / respiro), non il contrario.
+   Pareggiato il 19/10: le tratte duravano 2,3 · 1,45 · 1,9 · 1,9 · 1,35 e si
+   sentivano sbilanciate — quella dopo il primo pannello sembrava lunga.
+   Adesso: 2,3 (l'ingresso, che deve respirare) e poi 1,45-1,5 fisse fino alla
+   chiusura a 1,35. Un passo solo, per tutta la pagina. */
+const RESPIRO   = 1.9;    // quello di scorta, per una tappa che non lo dichiara
 const MIN_V     = 1.00;   // mai sotto la velocità naturale
 const MAX_V     = 2.60;   // oltre, la decodifica fatica sui portatili vecchi
 /* All'indietro il film si vede davvero scorrere a ritroso, da una tappa a
    quella prima, e si ferma su ognuna. Va piu' svelto dell'andata di un terzo. */
+/* La durata di UN fotogramma. Il filmato va a 30, quindi 33 millesimi. Serve
+   per ragionare a fotogrammi invece che a decimali: all'indietro si arretra di
+   fotogrammi interi, e una correzione piu' piccola di due fotogrammi non si fa
+   proprio, perche' si vedrebbe come uno scatto. */
+const FOTOGRAMMA = 1 / 30;
 const INDIETRO_PIU = 1.38;
 const INDIETRO_MIN = 0.45, INDIETRO_MAX = 2.00;
 const RIPOSO    = 430;    // un gesto = una tappa: la rotella spara 30 eventi per colpo
@@ -556,6 +571,7 @@ const SOPRA = 0.05, SOTTO = 0.42, LATI = 0.22;
    le code delle lettere */
 const PIENO_GIU = 0.13;
 const sfuma = document.getElementById('sfuma');
+let sfocaOra = '';            // l'ultima sfocatura scritta, per non riscriverla uguale
 let maschera = '';
 
 function doveScritta(t) {
@@ -655,9 +671,16 @@ function muoviSfuma(t) {
   sfuma.style.top = y0.toFixed(1) + 'px';
   sfuma.style.width = lar.toFixed(1) + 'px';
   sfuma.style.height = alt.toFixed(1) + 'px';
-  const f = `blur(${quanto}px) contrast(0.96) brightness(1.01)`;
-  sfuma.style.backdropFilter = f;
-  sfuma.style.webkitBackdropFilter = f;
+  /* La sfocatura si riscrive SOLO se cambia. Riassegnare un backdrop-filter
+     sessanta volte al secondo obbliga il browser a rifare l'effetto da capo a
+     ogni giro — ed e' l'effetto piu' caro della pagina. Da fermi non cambia
+     mai, e all'indietro cambia piano: cosi' si risparmia quasi sempre. */
+  if (quanto !== sfocaOra) {
+    sfocaOra = quanto;
+    const f = `blur(${quanto}px) contrast(0.96) brightness(1.01)`;
+    sfuma.style.backdropFilter = f;
+    sfuma.style.webkitBackdropFilter = f;
+  }
 
 }
 
@@ -672,6 +695,8 @@ let versoAvanti = true;
 let t0Indietro = 0;                 // quando è cominciato il ritorno
 let durataInd = 0.5;                // e quanto deve durare, secondo la distanza
 let cercando = false, cercaDaQuando = 0;   // un fotogramma per volta, all'indietro
+let passoInd = FOTOGRAMMA;          // di quanto si arretra a ogni passo
+let metaInd = 0;                    // il secondo chiesto in questo momento
 let t0Fermo = 0;                    // il cronometro per i passaggi a immagine ferma
 let visto = -1, vistoIl = 0;        // il cane da guardia: dov'era il film e quando
 let ultimoGesto = 0;                // per il riposo fra un gesto e l'altro
@@ -706,6 +731,22 @@ function punta(i) {
   } else {
     t0Indietro = performance.now();
     durataInd = indietroQuanto(partenzaT, TAPPE[bersaglio].t, TAPPE[bersaglio]);
+    /* Il passo: quanti fotogrammi si arretra per ogni ricerca. Si vorrebbero
+       30 fotogrammi al secondo, quindi i passi sono durataInd x 30; se la
+       strada e' piu' lunga di cosi', ogni passo vale piu' di un fotogramma.
+       Si arrotonda SEMPRE a fotogrammi interi: chiedere mezzo fotogramma vuol
+       dire due ricerche che danno la stessa immagine, cioe' lavoro buttato e
+       meno immagini viste. */
+    const strada = Math.abs(partenzaT - TAPPE[bersaglio].t);
+    /* 24 immagini al secondo, non 30: all'indietro ogni immagine costa una
+       ricerca, e una ricerca costa la rilettura dal fotogramma chiave. A 24
+       l'occhio vede lo stesso un movimento pieno — e' la cadenza del cinema —
+       e il computer fa un quinto di lavoro in meno. */
+    const passi = Math.max(1, Math.round(durataInd * 24));
+    passoInd = Math.max(FOTOGRAMMA,
+                        Math.round(strada / passi / FOTOGRAMMA) * FOTOGRAMMA);
+    metaInd = partenzaT;
+    cercando = false;
     if (!v.paused) v.pause();
   }
 }
@@ -843,21 +884,52 @@ function battito(ora) {
       if (!v.paused) {
         const resta = Math.max(0.03, a.t - v.currentTime);
         const resp = respiroDi(a);
-        v.playbackRate = morsa(resta / Math.max(0.30, resp * (1 - u) + 0.30), MIN_V, tettoDi(a));
+        const vuole = morsa(resta / Math.max(0.30, resp * (1 - u) + 0.30), MIN_V, tettoDi(a));
+        /* La velocita' si cambia solo se cambia davvero. Scriverla sessanta
+           volte al secondo fa ri-cadenzare il decodificatore a ogni giro, e su
+           qualche macchina si sente come un singhiozzo. Il 3% e' sotto la
+           soglia di quello che l'occhio nota. */
+        if (Math.abs(vuole - v.playbackRate) > v.playbackRate * 0.03) v.playbackRate = vuole;
       } else if (acceso !== false) { suona(); }
     } else {
-      /* Il filmato non si puo' far suonare al contrario: si sposta il fotogramma.
-         Ma un salto all'indietro costa, perche' il video va riletto dal fotogramma
-         chiave precedente (qui ce n'e' uno ogni 2 secondi). Se li si chiedono a
-         raffica il computer li scarta e si vede solo l'ultimo: ecco il "salto".
-         Quindi se ne chiede uno solo per volta, e il prossimo parte quando il
-         precedente e' comparso davvero. Cosi' ogni fotogramma chiesto si vede. */
-      u = morsa((ora - t0Indietro) / (durataInd * 1000), 0, 1);
-      const meta = partenzaT + (a.t - partenzaT) * dolce(u);
-      if (!cercando || ora - cercaDaQuando > 320) {
-        cercando = true; cercaDaQuando = ora; v.currentTime = meta;
+      /* IL RITORNO LO COMANDA IL FILMATO, NON UN CRONOMETRO.
+         Il filmato non si puo' far suonare al contrario: si sposta il
+         fotogramma, e ogni salto all'indietro costa, perche' il video va
+         riletto dal fotogramma chiave precedente.
+
+         Prima qui c'era un orologio: `u` veniva dal tempo passato, la pagina
+         scorreva su quello, e `atterra()` scattava quando l'orologio diceva
+         "finito" — da dovunque il film fosse arrivato. Tre guai, tutti e tre
+         visti da Alessio:
+           - la pagina scorreva mentre il film rincorreva: fuori passo;
+           - l'atterraggio saltava di colpo al punto giusto: il LAMPO;
+           - dopo 320 millesimi la ricerca in corso veniva abbandonata e se ne
+             chiedeva un'altra piu' avanti — e quella abbandonata poteva
+             comparire lo stesso, dopo: i fotogrammi sbagliati.
+
+         Adesso: si chiede UN passo per volta, il prossimo parte solo quando il
+         precedente e' comparso davvero, `u` si legge da dove sta il film, e si
+         atterra solo quando il film e' arrivato sul serio. Se una ricerca
+         tarda, si RICHIEDE QUELLA, non se ne salta una avanti. */
+      const strada = partenzaT - a.t;
+      u = Math.abs(strada) > 0.01
+        ? morsa((partenzaT - v.currentTime) / strada, 0, 1)
+        : 1;
+      if (!cercando) {
+        if (v.currentTime <= a.t + FOTOGRAMMA * 0.75) { atterra(); }
+        else {
+          /* Se la macchina non sta dietro si allunga il passo invece di
+             accumulare ritardo: meglio qualche fotogramma in meno che un
+             ritorno che striscia. */
+          const atteso = morsa((ora - t0Indietro) / (durataInd * 1000), 0, 1);
+          if (atteso > u + 0.30) passoInd = Math.min(Math.abs(strada) / 5, passoInd * 1.3);
+          metaInd = Math.max(a.t, v.currentTime - passoInd);
+          cercando = true; cercaDaQuando = ora;
+          v.currentTime = metaInd;
+        }
+      } else if (ora - cercaDaQuando > 700) {
+        cercaDaQuando = ora; v.currentTime = metaInd;   // la stessa, non un'altra
       }
-      if (u >= 1) atterra();
     }
     // la pagina segue il film, non il contrario
     const sch = da.sch + (a.sch - da.sch) * dolce(u);
@@ -871,7 +943,8 @@ function battito(ora) {
     }
   } else {
     if (!v.paused && Math.abs(v.currentTime - da.t) < 0.25) v.pause();
-    if (Math.abs(v.currentTime - da.t) > 0.03 && v.paused) v.currentTime = da.t;
+    // stessa tolleranza di atterra(): se no lo strappo tornava un giro dopo
+    if (Math.abs(v.currentTime - da.t) > FOTOGRAMMA * 1.5 && v.paused) v.currentTime = da.t;
     // ...e solo se la coda non ha gia' fatto ripartire il viaggio in questo stesso giro
     if (!inViaggio() && tappaMostrata !== indice) { tappaMostrata = indice; apriTappa(da); }
   }
@@ -918,7 +991,13 @@ function atterra() {
   indice = bersaglio;
   partenzaT = TAPPE[indice].t;
   if (!v.paused) v.pause();
-  v.currentTime = TAPPE[indice].t;
+  /* NIENTE STRAPPO SE SI E' GIA' LI'. A 2x il film avanza di 66 millesimi per
+     fotogramma mostrato, quindi la tappa la supera sempre di un pelo. Rimetterlo
+     indietro di un fotogramma si vede: e' lo scatto all'arrivo.
+     Il viaggio dopo riparte comunque dal secondo della TABELLA, non da qui,
+     quindi non si accumula niente. */
+  if (Math.abs(v.currentTime - TAPPE[indice].t) > FOTOGRAMMA * 1.5)
+    v.currentTime = TAPPE[indice].t;
   scrollTo(0, TAPPE[indice].sch * (innerHeight || 1));
 }
 
