@@ -452,6 +452,7 @@ p{margin:0}
         scrivendo a <b>info@hadrianusmultiservice.it</b>.</p>
       <p style="margin-top:1rem;color:#6B6155">&#9888; Prova di lavoro. Questo testo va
         confermato prima di andare online davvero.</p>
+      <p style="margin-top:.6rem;color:#6B6155" id="timbro"></p>
     </div>
   </div>
 </div>
@@ -612,6 +613,13 @@ const SOSTA_CALMA = 1100;
 const ANTICIPO  = 0.50;   // il pannello si apre mezzo secondo PRIMA che il film si fermi
 const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
 
+/* IL TIMBRO DELLA VERSIONE.
+   Si vede in fondo al quadrante di regia e nel pannello d'ingresso. Serve a
+   una cosa sola ma importante: quando Alessio dice «non funziona», deve poter
+   dire anche QUALE versione sta guardando. Senza, si corregge al buio — e'
+   gia' successo di inseguire difetti gia' corretti. */
+const VERSIONE = 'v51 · 19/10 21:25';
+
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
 
@@ -691,6 +699,9 @@ const INSEGNA_MAX = 20000;  // e non oltre questo, qualunque cosa succeda
 function gia(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function segna(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
+const timbro = document.getElementById('timbro');
+if (timbro) timbro.textContent = 'versione ' + VERSIONE;
+
 bottonePiu.addEventListener('click', () => {
   const aperto = !dettagli.hidden;
   dettagli.hidden = aperto;
@@ -698,25 +709,32 @@ bottonePiu.addEventListener('click', () => {
   bottonePiu.textContent = aperto ? 'Maggiori informazioni' : 'Chiudi';
 });
 
-/* IL FILMATO PARTE SUBITO, PRIMA DI TUTTO E IN SILENZIO.
-   Non si aspetta che accetti: scaricare il proprio filmato non e' tracciare
-   nessuno, e aspettare il consenso butterebbe via i secondi piu' preziosi.
-   Si legge il flusso byte per byte solo per sapere QUANDO ha finito — il
-   numero non si fa vedere a nessuno. Il file resta nella cache del browser,
-   quindi quando il filmato lo chiede lo trova gia' li'.
-   NON si costruisce un blob: su iPhone Safari non sa leggere un video da un
-   blocco in memoria, e la pagina resterebbe nera. */
-let scaricatoTutto = false;
-async function tiraGiuIlFilmato() {
-  try {
-    const r = await fetch(FILMATO, { cache: 'force-cache' });
-    if (!r.ok || !r.body) throw new Error('niente corpo');
-    const lettore = r.body.getReader();
-    for (;;) { const { done } = await lettore.read(); if (done) break; }
-    scaricatoTutto = true;
-  } catch (e) { scaricatoTutto = false; }
+/* COME SI ASPETTA IL FILMATO — misurato, non immaginato.
+   Prima qui c'era una `fetch` che tirava giu' il file per intero, per
+   scaldare la cache. NON FUNZIONAVA, e faceva danno: misurato con il
+   registro di rete, il filmato partiva DUE VOLTE —
+       GET ...mp4 -> 200           la mia fetch, 7 MB
+       GET ...mp4 -> 206 Partial   il video, che se lo riscarica da capo
+   perche' il video chiede i pezzi con una richiesta a intervalli, che per il
+   browser e' un'altra cosa dalla richiesta intera. Quattordici megabyte
+   invece di sette, e il doppio dell'attesa: ero io a rendere lento il sito.
+
+   Adesso: UNA sola discesa, quella del video, che parte da sola con
+   `preload="auto"`. Si guarda quanto ha in pancia e si parte quando basta.
+   Un video in pausa si ferma attorno all'89% e non va oltre (misurato), e
+   l'80% di 19,3 secondi sono 15,5 secondi di film: ben oltre l'ultima
+   fermata, che sta a 13,30. Quindi all'80% c'e' gia' tutto quello che serve. */
+const BASTA_COSI = 0.80;
+
+function quantoInPancia() {
+  const d = v.duration;
+  if (!d || !isFinite(d) || !v.buffered || !v.buffered.length) return 0;
+  let fine = 0;
+  for (let i = 0; i < v.buffered.length; i++) {
+    if (v.buffered.start(i) <= 0.25) fine = Math.max(fine, v.buffered.end(i));
+  }
+  return morsa(fine / d, 0, 1);
 }
-tiraGiuIlFilmato();
 
 function apriLaStrada() {
   if (viaLibera) return;
@@ -732,7 +750,7 @@ function cartaDiTesta() {
   const t0 = performance.now();
   (function aspetta() {
     const passati = performance.now() - t0;
-    if (passati >= INSEGNA_MIN && (scaricatoTutto || passati > INSEGNA_MAX)) {
+    if (passati >= INSEGNA_MIN && (quantoInPancia() >= BASTA_COSI || passati > INSEGNA_MAX)) {
       insegna.classList.add('via');
       apriLaStrada();
       setTimeout(() => { insegna.hidden = true; }, 800);
@@ -1170,7 +1188,14 @@ function battito(ora) {
          Allora si arriva a mano: brutto da vedere una volta, meglio di una
          pagina morta. */
       if (Math.abs(v.currentTime - visto) > 0.01) { visto = v.currentTime; vistoIl = ora; }
-      else if (vistoIl && ora - vistoIl > 6000) { visto = -1; vistoIl = 0; atterra(); return; }
+      /* Sei secondi erano un'eternita': se il film si impianta, il pannello
+         arriva cosi' tardi che sembra non arrivare per niente — ed e' quello
+         che vedeva Alessio sul terzo e sul quarto. Due secondi e mezzo se il
+         filmato e' li' ma non si muove; un secondo e mezzo se e' proprio a
+         secco (readyState sotto 3), perche' li' aspettare non serve. */
+      else if (vistoIl && ora - vistoIl > (v.readyState < 3 ? 1500 : 2500)) {
+        visto = -1; vistoIl = 0; atterra(); return;
+      }
       if (!v.paused) {
         const resta = Math.max(0.03, a.t - v.currentTime);
         const resp = respiroDi(a);
@@ -1300,7 +1325,8 @@ function battito(ora) {
     (inViaggio() ? da.nome + ' → ' + a.nome : da.nome) +
     '  ·  ' + (v.paused ? 'ferma' : v.playbackRate.toFixed(2) + '×') +
     '  ·  video ' + Math.round(film.style.opacity * 100) + '%' +
-    (sfumaViva > 0.01 ? '  ·  scritte sfumate ' + Math.round(sfumaViva * 100) + '%' : '');
+    (sfumaViva > 0.01 ? '  ·  scritte sfumate ' + Math.round(sfumaViva * 100) + '%' : '') +
+    '  ·  ' + VERSIONE;
 
  } catch (e) {
   /* IL MOTORE NON PUO' MORIRE.
