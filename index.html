@@ -618,7 +618,7 @@ const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
    una cosa sola ma importante: quando Alessio dice «non funziona», deve poter
    dire anche QUALE versione sta guardando. Senza, si corregge al buio — e'
    gia' successo di inseguire difetti gia' corretti. */
-const VERSIONE = 'v51 · 19/10 21:25';
+const VERSIONE = 'v52 · 19/10 21:29';
 
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
@@ -721,10 +721,12 @@ bottonePiu.addEventListener('click', () => {
 
    Adesso: UNA sola discesa, quella del video, che parte da sola con
    `preload="auto"`. Si guarda quanto ha in pancia e si parte quando basta.
-   Un video in pausa si ferma attorno all'89% e non va oltre (misurato), e
-   l'80% di 19,3 secondi sono 15,5 secondi di film: ben oltre l'ultima
-   fermata, che sta a 13,30. Quindi all'80% c'e' gia' tutto quello che serve. */
-const BASTA_COSI = 0.80;
+   Quanto basta NON si sceglie a sentimento: e' l'ultima fermata piu' un
+   margine. L'ultima e' a 13.30 s su 19,33, cioe' il 69%. Con mezzo
+   secondo di margine fa il 72%. Oltre non serve a niente: sarebbe solo
+   attesa regalata. Da 13.30 in poi il filmato non si muove piu'.
+   (Un video in pausa comunque si ferma attorno all'89% e non va oltre.) */
+const BASTA_COSI = 0.72;
 
 function quantoInPancia() {
   const d = v.duration;
