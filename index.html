@@ -46,11 +46,21 @@ p{margin:0}
    blocco e' largo quanto la parola piu' lunga, cioe' HADRIANUS. Nessun numero
    da ritoccare a mano: cambia il carattere o la misura, e resta allineato. */
 .marchio{display:inline-flex;flex-direction:column;line-height:1}
+/* La spaziatura fra le lettere aggiunge spazio ANCHE DOPO L'ULTIMA, quindi la
+   scatola di HADRIANUS e' piu' larga della parola di .3em. MULTISERVICE si
+   allarga sulla scatola: senza questo margine negativo sporgeva a sinistra
+   esattamente di quel .3em — e' quello che si vedeva storto.
+   Il margine negativo accorcia la scatola fino all'inchiostro: da li' in poi
+   le due righe cominciano e finiscono nello stesso punto. */
 .marchio .nome{font-family:var(--display);letter-spacing:.3em;color:var(--crema);
-  font-size:clamp(.8rem,.72rem + .3vw,1rem);text-indent:.3em}
+  font-size:clamp(.8rem,.72rem + .3vw,1rem);margin-right:-.3em}
+/* NON si allarga con `justify`: quello distribuisce gli spazi FRA LE PAROLE,
+   e MULTISERVICE e' una parola sola — non c'e' niente da distribuire, e le
+   lettere restavano dov'erano. La spaziatura giusta la calcola lo script
+   misurando le due righe, e la rifa' quando arriva il carattere vero e a
+   ogni cambio di misura della finestra. */
 .marchio .ditta{font-family:var(--display);color:var(--soft);
-  font-size:.46em;margin-top:.42em;
-  text-align:justify;text-align-last:justify;-moz-text-align-last:justify}
+  font-size:.46em;margin-top:.42em;white-space:nowrap}
 .barra .marchio .ditta{font-size:.52em}
 .barra a{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--oro-chiaro);
   text-decoration:none;border:1px solid rgba(200,162,75,.45);padding:.55em 1.3em}
@@ -228,7 +238,7 @@ p{margin:0}
 }
 #insegna .marchio{animation:insegnaSale 1.6s cubic-bezier(.16,.84,.34,1) both}
 #insegna .marchio .nome{font-weight:500;color:var(--crema);
-  font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;text-indent:.42em}
+  font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;margin-right:-.42em}
 #insegna .marchio .ditta{font-size:.30em;margin-top:.7em;color:var(--oro-chiaro)}
 #insegna .filo{display:block;width:0;height:1px;margin:1.2rem auto 0;
   background:linear-gradient(to right,transparent,var(--oro),transparent);
@@ -501,7 +511,8 @@ p{margin:0}
   <div>
     <span class="marchio"><span class="nome">HADRIANUS</span><span class="ditta">MULTISERVICE</span></span>
     <span class="filo"></span>
-    <span class="sotto">Roma e il litorale di Ostia</span>
+    <span class="sotto">Roma e il litorale di Ostia</span><!-- era «Multiservice ·
+      Roma e Ostia»: MULTISERVICE adesso sta nel marchio sopra, non si ripete -->
   </div>
 </div>
 
@@ -658,7 +669,7 @@ const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
    una cosa sola ma importante: quando Alessio dice «non funziona», deve poter
    dire anche QUALE versione sta guardando. Senza, si corregge al buio — e'
    gia' successo di inseguire difetti gia' corretti. */
-const VERSIONE = 'v53 · 19/10 21:42';
+const VERSIONE = 'v54 · 19/10 21:59';
 
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
@@ -738,6 +749,41 @@ const INSEGNA_MAX = 20000;  // e non oltre questo, qualunque cosa succeda
 
 function gia(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function segna(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+/* IL MARCHIO: MULTISERVICE LARGO QUANTO HADRIANUS.
+   Si misura l'inchiostro vero delle due righe — dalla prima lettera
+   all'ultima, togliendo la spaziatura che resta appesa dopo l'ultima — e si
+   spalma la differenza fra le lettere di sotto. Il margine negativo finale
+   toglie la coda che la spaziatura aggiunge anche all'ultima lettera, se no
+   la riga risulterebbe spostata a sinistra di quel tanto.
+   Si rifa' quando il carattere vero e' arrivato (Cinzel scende dalla rete, e
+   prima si misura un carattere di ripiego) e a ogni cambio di finestra. */
+function larghezzaInchiostro(el) {
+  const t = el.firstChild;
+  if (!t || t.nodeType !== 3) return el.getBoundingClientRect().width;
+  const r = document.createRange();
+  r.setStart(t, 0); r.setEnd(t, t.length);
+  const coda = parseFloat(getComputedStyle(el).letterSpacing) || 0;
+  return r.getBoundingClientRect().width - coda;
+}
+function allineaMarchio() {
+  document.querySelectorAll('.marchio').forEach(m => {
+    const nome = m.querySelector('.nome'), ditta = m.querySelector('.ditta');
+    if (!nome || !ditta || !ditta.firstChild) return;
+    const quante = ditta.textContent.trim().length;
+    if (quante < 2) return;
+    ditta.style.letterSpacing = '0px';
+    ditta.style.marginRight = '0px';
+    const bersaglio = larghezzaInchiostro(nome);
+    const naturale  = larghezzaInchiostro(ditta);
+    const passo = (bersaglio - naturale) / (quante - 1);
+    ditta.style.letterSpacing = passo.toFixed(3) + 'px';
+    ditta.style.marginRight = (-passo).toFixed(3) + 'px';
+  });
+}
+allineaMarchio();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(allineaMarchio);
+addEventListener('resize', allineaMarchio);
 
 const timbro = document.getElementById('timbro');
 if (timbro) timbro.textContent = 'versione ' + VERSIONE;
@@ -1178,7 +1224,14 @@ function apriCoppia(x) {
   crono = setTimeout(() => {
     const ha = a.querySelector('.telaio').offsetHeight;
     const hb = b.querySelector('.telaio').offsetHeight;
-    if (a.classList.contains('basso')) {
+    /* DOVE STANNO LO DECIDE IL FOGLIO DI STILE, NON LA CLASSE.
+       Qui c'era `a.classList.contains('basso')`. Sul telefono i pannelli sono
+       stati centrati nel CSS ma la classe e' rimasta: il motore continuava a
+       piazzarli con la formula di quelli ancorati in basso, e il quarto e il
+       quinto finivano fuori posto. Adesso si chiede al browser dove stanno
+       davvero: se il CSS li centra, si usa la formula del centro. Cosi' le due
+       cose non possono piu' andare in disaccordo. */
+    if (getComputedStyle(a).alignItems === 'end') {
       /* Ancorati in basso: il primo sale di tutta l'altezza del secondo e il
          secondo resta dov'e'. Spartendo lo spostamento a meta', come si fa
          quando sono centrati, il secondo finirebbe sotto il bordo. */
