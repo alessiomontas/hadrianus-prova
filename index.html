@@ -39,8 +39,19 @@ p{margin:0}
   opacity:0;transform:translateY(-10px);
   transition:opacity .9s ease,transform .9s cubic-bezier(.16,.84,.34,1)}
 .barra.entra{opacity:1;transform:none}
-.barra .marchio{font-family:var(--display);font-size:clamp(.8rem,.72rem + .3vw,1rem);
-  letter-spacing:.3em;color:var(--crema)}
+/* IL MARCHIO E' SEMPRE DUE RIGHE: HADRIANUS, e sotto MULTISERVICE largo
+   uguale. L'impresa si chiama cosi'.
+   La riga di sotto si allarga da sola fino a combaciare con quella sopra:
+   `text-align-last:justify` spalma le lettere fino al bordo del blocco, e il
+   blocco e' largo quanto la parola piu' lunga, cioe' HADRIANUS. Nessun numero
+   da ritoccare a mano: cambia il carattere o la misura, e resta allineato. */
+.marchio{display:inline-flex;flex-direction:column;line-height:1}
+.marchio .nome{font-family:var(--display);letter-spacing:.3em;color:var(--crema);
+  font-size:clamp(.8rem,.72rem + .3vw,1rem);text-indent:.3em}
+.marchio .ditta{font-family:var(--display);color:var(--soft);
+  font-size:.46em;margin-top:.42em;
+  text-align:justify;text-align-last:justify;-moz-text-align-last:justify}
+.barra .marchio .ditta{font-size:.52em}
 .barra a{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--oro-chiaro);
   text-decoration:none;border:1px solid rgba(200,162,75,.45);padding:.55em 1.3em}
 .barra a:hover{background:var(--oro);color:#1A1309}
@@ -215,10 +226,10 @@ p{margin:0}
   #soglia.entra .scatola,#insegna .marchio,#insegna .filo,#insegna .sotto{animation:none}
   #insegna .filo{width:min(18rem,54vw);opacity:1}
 }
-#insegna .marchio{font-family:var(--display);font-weight:500;color:var(--crema);
-  font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;
-  text-indent:.42em;text-align:center;
-  animation:insegnaSale 1.6s cubic-bezier(.16,.84,.34,1) both}
+#insegna .marchio{animation:insegnaSale 1.6s cubic-bezier(.16,.84,.34,1) both}
+#insegna .marchio .nome{font-weight:500;color:var(--crema);
+  font-size:clamp(1.5rem,1rem + 2.6vw,2.9rem);letter-spacing:.42em;text-indent:.42em}
+#insegna .marchio .ditta{font-size:.30em;margin-top:.7em;color:var(--oro-chiaro)}
 #insegna .filo{display:block;width:0;height:1px;margin:1.2rem auto 0;
   background:linear-gradient(to right,transparent,var(--oro),transparent);
   animation:filoCresce 2.6s cubic-bezier(.16,.84,.34,1) .5s both}
@@ -336,21 +347,50 @@ p{margin:0}
   #film video{object-fit:cover;object-position:center center}
   #ombra{background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 18%,
          rgba(0,0,0,0) 60%,rgba(0,0,0,.82) 94%)}
-  /* I margini laterali del pannello sono questi, e sono gli stessi a destra e
-     a sinistra perche' li da' la spaziatura della scatola. */
-  .pop{padding:20px 16px}
-  .pop.basso{padding:20px 16px clamp(44px,7vh,84px)}
-  .telaio{padding:22px 15px}
+  /* SUL TELEFONO TUTTO PIU' GRANDE. Misurato su uno schermo da 390 px: le
+     scritte stavano fra i 12,8 e i 17,4 px, cioe' piccole per un telefono
+     tenuto in mano. Qui sotto si sale, e ogni misura e' verificata perche'
+     niente sfori di lato e nessuna voce vada a capo da sola.
+     I margini si stringono apposta: ogni pixel tolto ai bordi e' un pixel in
+     piu' per il testo, ed e' quello che permette agli elenchi di crescere da
+     14,9 a 17 px restando su DUE colonne. */
+  .pop{padding:16px 10px}
+  .telaio{padding:20px 12px}
+  /* Il quarto e il quinto non stanno piu' incollati in basso: li' erano
+     piccoli e spiaccicati. Al centro respirano e si leggono. La fascia incisa
+     del podio ormai la copre la sfumatura, al 100%: non serve piu' il
+     pannello a farle da coperchio. */
+  .pop.basso{align-items:center;padding:16px 10px}
   /* NIENTE colonna singola: le voci restano in pari anche qui. Era una regola
      di prima a disfare la simmetria sul telefono.
      Le misure sono tarate perche' la voce piu' lunga stia su UNA riga in uno
      schermo da 390 px: se una va a capo e le altre no, si vede subito. */
-  .telaio ul{gap:.62rem .9rem;font-size:.93rem;line-height:1.35}
-  .telaio ul.breve{gap:.5rem .9rem;font-size:.92rem}
-  .telaio li{padding-left:.82rem}
-  .telaio li::before{width:5px;height:5px;top:.58em}
-  .telaio .capo{font-size:clamp(1.78rem,1.1rem + 4.2vw,2.4rem)}
-  .telaio .tariffa b{font-size:clamp(3.6rem,2rem + 13vw,5.4rem)}
+  /* Gli elenchi: 17 px invece di 14,9. Il tetto vero e' 17,4 — misurato
+     sulla voce piu' lunga di ogni colonna («Assistenza ospiti H24» e «Piu' di
+     un affitto lungo») con questi margini e questo spazio fra le colonne.
+     Si sta sotto di un filo per sicurezza: se un giorno si allunga una voce,
+     non va a capo di colpo. */
+  .telaio ul{gap:.68rem .5rem;font-size:1.06rem;line-height:1.34}
+  .telaio ul.breve{gap:.6rem .5rem;font-size:1.06rem}
+  .telaio li{padding-left:.86rem}
+  .telaio li::before{width:5px;height:5px;top:.56em}
+  .telaio .capo{font-size:clamp(2.05rem,1.2rem + 5vw,2.7rem)}
+  .telaio .capo.due{font-size:clamp(1.3rem,.95rem + 1.8vw,1.7rem)}
+  .telaio .corpo{font-size:1.22rem;line-height:1.5;max-width:none}
+  #pop1 .capo{font-size:clamp(2.3rem,1.3rem + 6vw,3.1rem)}
+  #pop1 .corpo{font-size:1.22rem}
+  .telaio .tariffa b{font-size:clamp(4.2rem,2.2rem + 15vw,6rem)}
+  .telaio .tariffa i{font-size:clamp(1.5rem,1.1rem + 2.2vw,1.9rem)}
+  /* il marchio in alto, e il tasto accanto */
+  .barra{padding:12px 14px}
+  .barra .marchio .nome{font-size:.96rem}
+  .barra a{font-size:.8rem;padding:.55em 1.15em}
+  /* la chiusura e il piede di pagina */
+  .chiusa h2{font-size:clamp(2.1rem,1.3rem + 5.2vw,2.8rem)}
+  .chiusa .sotto{font-size:1.1rem}
+  .chiamata{font-size:1.08rem;padding:1.05em 2.4em}
+  .voci span{font-size:1.02rem}
+  .piede{font-size:.98rem}
   .quadrante{font-size:.56rem;left:8px;bottom:8px;max-width:calc(100vw - 16px)}
   .invito{bottom:14px}
 }
@@ -363,7 +403,7 @@ p{margin:0}
 </style>
 
 <header class="barra">
-  <span class="marchio">HADRIANUS</span>
+  <span class="marchio"><span class="nome">HADRIANUS</span><span class="ditta">MULTISERVICE</span></span>
   <a href="#parliamone">Parliamone</a>
 </header>
 
@@ -459,9 +499,9 @@ p{margin:0}
 
 <div id="insegna" aria-hidden="true">
   <div>
-    <span class="marchio">HADRIANUS</span>
+    <span class="marchio"><span class="nome">HADRIANUS</span><span class="ditta">MULTISERVICE</span></span>
     <span class="filo"></span>
-    <span class="sotto">Multiservice &middot; Roma e Ostia</span>
+    <span class="sotto">Roma e il litorale di Ostia</span>
   </div>
 </div>
 
@@ -618,7 +658,7 @@ const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
    una cosa sola ma importante: quando Alessio dice «non funziona», deve poter
    dire anche QUALE versione sta guardando. Senza, si corregge al buio — e'
    gia' successo di inseguire difetti gia' corretti. */
-const VERSIONE = 'v52 · 19/10 21:29';
+const VERSIONE = 'v53 · 19/10 21:42';
 
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
