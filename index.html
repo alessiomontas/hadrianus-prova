@@ -41,10 +41,11 @@ p{margin:0}
 .barra.entra{opacity:1;transform:none}
 /* IL MARCHIO E' SEMPRE DUE RIGHE: HADRIANUS, e sotto MULTISERVICE largo
    uguale. L'impresa si chiama cosi'.
-   La riga di sotto si allarga da sola fino a combaciare con quella sopra:
-   `text-align-last:justify` spalma le lettere fino al bordo del blocco, e il
-   blocco e' largo quanto la parola piu' lunga, cioe' HADRIANUS. Nessun numero
-   da ritoccare a mano: cambia il carattere o la misura, e resta allineato. */
+   La spaziatura che allarga la riga di sotto la calcola lo SCRIPT
+   (`allineaMarchio`), misurando le lettere vere delle due righe.
+   Col CSS non si poteva: `text-align-last:justify` distribuisce gli spazi FRA
+   LE PAROLE, e MULTISERVICE e' una parola sola — non succedeva niente, e la
+   parola restava appoggiata a sinistra sotto una piu' larga. */
 .marchio{display:inline-flex;flex-direction:column;line-height:1}
 /* La spaziatura fra le lettere aggiunge spazio ANCHE DOPO L'ULTIMA, quindi la
    scatola di HADRIANUS e' piu' larga della parola di .3em. MULTISERVICE si
@@ -669,7 +670,7 @@ const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
    una cosa sola ma importante: quando Alessio dice «non funziona», deve poter
    dire anche QUALE versione sta guardando. Senza, si corregge al buio — e'
    gia' successo di inseguire difetti gia' corretti. */
-const VERSIONE = 'v54 · 19/10 21:59';
+const VERSIONE = 'v55 · 19/10 22:02';
 
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
