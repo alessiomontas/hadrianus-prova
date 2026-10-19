@@ -37,7 +37,9 @@ p{margin:0}
 /* ---------------- il film ---------------- */
 #film{position:fixed;inset:0;z-index:0;background:#000;overflow:hidden}
 #film video{position:absolute;inset:0;width:100%;height:100%;display:block;background:#000;
-  object-fit:cover;object-position:center 38%}
+  object-fit:cover;object-position:center 38%;
+  /* il respiro della fermata passa di qui: lo muove la scheda grafica */
+  transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}
 /* NIENTE FILTRI QUI. Incisione, ombre e grado sono cotti dentro il filmato in
    fase di compressione: il browser di chi guarda non deve fare nessun conto.
    Prima la catena girava a ogni fotogramma e sui telefoni andava a scatti. */
@@ -45,7 +47,8 @@ p{margin:0}
    Sta fra il filmato e la vignetta, cosi' l'ombra e la grana le passano sopra
    e il bordo non si stacca. Misure e forma gliele da' lo script, a ogni giro. */
 #sfuma{position:fixed;left:0;top:0;width:0;height:0;z-index:1;
-  opacity:0;visibility:hidden;pointer-events:none;will-change:left,top,width,height,opacity;
+  opacity:0;visibility:hidden;pointer-events:none;
+  will-change:left,top,width,height,opacity,transform;
   /* la maschera che smussa i quattro bordi gliela mette lo script: e' calcolata
      dai margini qui sopra, cosi' le due cose non possono andare fuori passo */
   -webkit-mask-composite:source-in;mask-composite:intersect}
@@ -354,17 +357,37 @@ addEventListener('unhandledrejection', e => {
    t   = il secondo del filmato
    sch = dove sta la tappa nella pagina, in schermate
    ================================================================== */
+/* I SECONDI SONO SCELTI SUI FOTOGRAMMI, non a sentimento. Misurato il
+   19/10/2026 su tutti e 580 i fotogrammi (peso del fotogramma = quanto si
+   muove; dettaglio = quanto e' a fuoco):
+
+     4,60  dettaglio 101  il vicolo acceso, la strada al centro
+     6,30  dettaglio  43  la piazza che si apre, il fascio di luce — scuro
+                          APPOSTA: e' il fondo di un pannello di testo
+     8,10  dettaglio 139  il tempio di tre quarti, il busto in vista
+     9,90  dettaglio ~95  il tempio di fianco: una lastra piatta, busto nascosto
+    12,40  dettaglio 170  IL FOTOGRAMMA PIU' NITIDO DEL FILM, facciata in asse
+    14,90  dettaglio ~95  dentro i 2,2 s di FERMO IMMAGINE (13,0-15,2)
+    16,30  dettaglio 131  l'ultimo fotogramma ancora a fuoco
+    19,33  dettaglio  <40 poltiglia: la coda del film si sfoca e non torna nera
+
+   Prima tre tappe su sei cadevano male: la 3 sulla lastra piatta, la 4+5
+   dentro il fermo immagine, l'ultima sulla poltiglia. Da li' veniva la
+   sensazione di "troppo fermo": si scorreva e il fondo non cambiava. */
 const TAPPE = [
   { nome: 'nero',     t:  0.00, sch: 0.0, pop: null   },
   // il primo gesto riaccende la luce, fa tutto il marchio, lo zoom, il varco
   // e arriva sotto il lampione. Respiro piu' largo: e' la scena d'ingresso.
   { nome: 'pop1',     t:  4.60, sch: 1.5, pop: 'pop1', respiro: 2.3 },
   { nome: 'pop2',     t:  6.30, sch: 3.0, pop: 'pop2' },
-  { nome: 'pop3',     t:  9.90, sch: 4.5, pop: 'pop3' },
+  // le colonne portanti, sulle colonne vere: tre quarti, busto in vista
+  { nome: 'pop3',     t:  8.10, sch: 4.5, pop: 'pop3' },
   // una sola tappa, due tempi: compare il 4, sale, e arriva il 5. Da solo.
-  { nome: 'finale',   t: 14.90, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70 },
-  // l'ultimo gesto: la luce cala in fretta e sale il piede di pagina
-  { nome: 'chiusura', t: 19.33, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
+  // Sul fotogramma piu' nitido che il film abbia: qui si chiede il sopralluogo.
+  { nome: 'finale',   t: 12.40, sch: 6.0, pop: 'pop4', poi: 'pop5', anticipo: 0.70 },
+  // l'ultimo gesto: la luce cala in fretta e sale il piede di pagina.
+  // Si chiude a 16,30 e i 3 secondi di coda sfocata non si vedono piu'.
+  { nome: 'chiusura', t: 16.30, sch: 7.0, pop: null, respiro: 1.35, tetto: 3.0 }
 ];
 const ATTESA_COPPIA = 1200;   // quanto resta solo il primo prima che arrivi il secondo
 const STACCO = 16;            // lo spazio fra i due pannelli
@@ -388,6 +411,24 @@ const SOSTA_MIN = 1400;
    e il conto parte da li'. Cosi' basta un numero solo. */
 const ANTICIPO  = 0.50;   // il pannello si apre mezzo secondo PRIMA che il film si fermi
 const VELO_DA = 3.30, VELO_A = 3.95, VELO = 0.86;
+
+/* IL RESPIRO DELLA FERMATA.
+   Su una tappa il filmato e' in pausa, e un fotogramma fermo per tre secondi
+   si legge come una pagina morta. Allora la macchina da presa non si ferma
+   davvero: entra pianissimo, 2,8% in nove secondi. Fa 0,3% al secondo — non
+   si vede muovere, si sente che e' viva.
+   Costa zero: e' una trasformazione, la fa la scheda grafica, non c'e' un
+   filtro nuovo e non si tocca un pixel in piu'. */
+const RESPIRA   = 8000;   // quanto dura l'entrata, in millesimi
+const AMPIEZZA  = 0.042;  // quanto entra: 4,2%
+const ALZATA    = 0.010;  // e quanto sale, in altezze di schermo
+/* La curva conta piu' dell'ampiezza. Con una curva morbida ai due capi il
+   movimento comincia da fermo, e il primo secondo — proprio quando si arriva
+   e si apre il pannello — sembrava ancora immobile. Questa parte **subito**
+   alla sua velocita' massima e poi rallenta: all'arrivo si muove di circa
+   l'1% al secondo, che e' l'andatura di una carrellata da documentario, e
+   dopo qualche secondo si posa da sola. */
+const rilascia = u => 1 - (1 - u) * (1 - u);
 
 const morsa = (x, a, b) => x < a ? a : x > b ? b : x;
 const dolce = u => u * u * (3 - 2 * u);
@@ -598,9 +639,13 @@ function muoviSfuma(t) {
   if (op <= 0.01) { sfuma.style.visibility = 'hidden'; return; }
 
   /* Sfocatura in proporzione all'altezza della fascia: da lontano non cancella
-     tutto, da vicino basta. 0,085 e' il punto giusto: le lettere spariscono e
-     al marmo resta un po' della sua venatura. Piu' su diventa una lastra piatta. */
-  const quanto = Math.max(1.3, alt * 0.085).toFixed(2);
+     tutto, da vicino basta.
+     Era 0,085, tarato sul filmato vecchio. Col filmato restaurato il marmo e'
+     piu' nitido e a 0,085 le lettere lasciavano ancora un'ombra che si
+     seguiva. Misurata la scala 0,085 · 0,100 · 0,115 · 0,130 sullo stesso
+     fotogramma: a 0,115 spariscono e al marmo resta la venatura; a 0,130
+     diventa la lastra piatta che non vogliamo. */
+  const quanto = Math.max(1.3, alt * 0.115).toFixed(2);
   sfuma.style.visibility = 'visible';
   sfuma.style.opacity = (op * VELATURA).toFixed(3);
   sfuma.style.left = x0.toFixed(1) + 'px';
@@ -610,6 +655,19 @@ function muoviSfuma(t) {
   const f = `blur(${quanto}px) contrast(0.96) brightness(1.01)`;
   sfuma.style.backdropFilter = f;
   sfuma.style.webkitBackdropFilter = f;
+
+  /* LA SFUMATURA RESPIRA COL FILMATO.
+     Il video entra attorno al centro dello schermo. Perche' il riquadro resti
+     incollato alla pietra gli si da' la STESSA trasformazione, ma con il
+     centro spostato: il punto fisso non e' il centro del riquadro, e' il
+     centro dello schermo visto da dentro il riquadro. Senza questo, al primo
+     respiro il bordo si staccherebbe dalle scritte. */
+  if (deriva) {
+    sfuma.style.transformOrigin = `${(L / 2 - x0).toFixed(1)}px ${(A / 2 - y0).toFixed(1)}px`;
+    sfuma.style.transform = `translateY(${alzaFilm.toFixed(2)}px) scale(${scalaFilm.toFixed(4)})`;
+  } else if (sfuma.style.transform) {
+    sfuma.style.transform = '';
+  }
 }
 
 
@@ -625,6 +683,8 @@ let durataInd = 0.5;                // e quanto deve durare, secondo la distanza
 let cercando = false, cercaDaQuando = 0;   // un fotogramma per volta, all'indietro
 let t0Fermo = 0;                    // il cronometro per i passaggi a immagine ferma
 let visto = -1, vistoIl = 0;        // il cane da guardia: dov'era il film e quando
+let deriva = 0;                     // il respiro della fermata: 0 = fermo, 1 = entrata finita
+let scalaFilm = 1, alzaFilm = 0;    // quanto il filmato e' entrato e salito, adesso
 let ultimoGesto = 0;                // per il riposo fra un gesto e l'altro
 let arrivatoIl = 0;                 // quando sono atterrato sulla tappa
 let completoIl = 0;                 // quando il pannello e' arrivato per intero
@@ -826,6 +886,28 @@ function battito(ora) {
     // ...e solo se la coda non ha gia' fatto ripartire il viaggio in questo stesso giro
     if (!inViaggio() && tappaMostrata !== indice) { tappaMostrata = indice; apriTappa(da); }
   }
+
+  /* IL RESPIRO. Da fermi la macchina entra pianissimo; appena riparte il
+     viaggio torna a posto, ma morbida, non di scatto. La sfumatura si muove
+     con lui — gliela passo qui sotto — se no il riquadro si staccherebbe
+     dalla pietra. */
+  /* Sulla PRIMA tappa non si respira: e' lo schermo nero, non c'e' niente da
+     guardare, e soprattutto dopo otto secondi di attesa il respiro sarebbe
+     tutto aperto — cosi' il primo scorrimento, quello in cui si riaccende la
+     luce, comincerebbe con un arretramento del 4% bello visibile. */
+  const metaDeriva = (inViaggio() || indice === 0)
+    ? 0
+    : rilascia(morsa((ora - Math.max(arrivatoIl, completoIl)) / RESPIRA, 0, 1));
+  /* Si rientra piu' piano di quanto si esca: 0,035 fa un ritorno di circa un
+     secondo e mezzo, che si legge come la macchina che si rilascia. A 0,06
+     era uno scatto all'indietro all'inizio di ogni viaggio. */
+  deriva += (metaDeriva - deriva) * (inViaggio() ? 0.035 : 0.14);
+  if (deriva < 0.0004) deriva = 0;
+  scalaFilm = 1 + AMPIEZZA * deriva;
+  alzaFilm  = -ALZATA * deriva * alto;
+  v.style.transform = deriva
+    ? `translateY(${alzaFilm.toFixed(2)}px) scale(${scalaFilm.toFixed(4)})`
+    : '';
 
   try { muoviSfuma(v.currentTime); }
   catch (e) { sfuma.style.visibility = 'hidden'; }   // un ritocco non ferma il film
